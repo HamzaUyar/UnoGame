@@ -169,8 +169,35 @@ public class ScoreTracker {
         // Calculate round duration in seconds
         long roundDuration = (System.currentTimeMillis() - roundStartTime) / 1000;
         
-        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(csvPath), 
-                StandardCharsets.UTF_8, StandardOpenOption.APPEND)) {
+        // Make sure the CSV directory exists
+        File csvDir = new File(csvPath).getParentFile();
+        if (csvDir != null && !csvDir.exists()) {
+            try {
+                if (!csvDir.mkdirs()) {
+                    System.err.println(ConsoleColors.RED_BOLD + "Failed to create directory for CSV: " + csvDir.getAbsolutePath() + ConsoleColors.RESET);
+                }
+            } catch (SecurityException e) {
+                System.err.println(ConsoleColors.RED_BOLD + "Security error creating CSV directory: " + e.getMessage() + ConsoleColors.RESET);
+            }
+        }
+        
+        BufferedWriter writer = null;
+        try {
+            // Check if file exists to write header if needed
+            boolean fileExists = new File(csvPath).exists();
+            
+            // Create the writer with append mode
+            writer = Files.newBufferedWriter(Paths.get(csvPath), 
+                    StandardCharsets.UTF_8, 
+                    fileExists ? StandardOpenOption.APPEND : StandardOpenOption.CREATE);
+            
+            // Write header if this is a new file
+            if (!fileExists) {
+                writer.write(CSV_HEADER);
+                writer.newLine();
+            }
+            
+            // Build the data line
             StringBuilder line = new StringBuilder();
             line.append(round);
             
@@ -193,10 +220,21 @@ public class ScoreTracker {
             
             writer.write(line.toString());
             writer.newLine();
+            writer.flush(); // Ensure data is written
             
-            System.out.println(ConsoleColors.WHITE + "Scores and stats saved to " + csvPath + ConsoleColors.RESET);
+            System.out.println(ConsoleColors.GREEN + "Scores and stats saved to " + csvPath + ConsoleColors.RESET);
         } catch (IOException e) {
-            System.err.println(ConsoleColors.RED + "Error writing to scores file: " + e.getMessage() + ConsoleColors.RESET);
+            System.err.println(ConsoleColors.RED_BOLD + "Error writing to scores file: " + e.getMessage() + ConsoleColors.RESET);
+        } catch (Exception e) {
+            System.err.println(ConsoleColors.RED_BOLD + "Unexpected error saving scores: " + e.getMessage() + ConsoleColors.RESET);
+        } finally {
+            if (writer != null) {
+                try {
+                    writer.close();
+                } catch (IOException e) {
+                    System.err.println(ConsoleColors.RED + "Error closing CSV writer: " + e.getMessage() + ConsoleColors.RESET);
+                }
+            }
         }
     }
     

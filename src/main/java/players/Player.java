@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import main.java.cards.Card;
 import main.java.game.GameMediator;
@@ -68,7 +69,7 @@ public class Player {
                 .collect(Collectors.toList());
         
         // Maybe play a Wild card (with 30% probability if available)
-        if (!wildCards.isEmpty() && new Random().nextDouble() < 0.3) {
+        if (!wildCards.isEmpty() && ThreadLocalRandom.current().nextDouble() < 0.3) {
             return wildCards.get(0);
         }
         
