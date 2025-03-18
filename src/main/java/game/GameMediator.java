@@ -84,13 +84,11 @@ public class GameMediator {
     /**
      * Determines the starting player by having each player draw a card.
      * The player with the highest value card becomes the dealer/starting player.
+     * This implementation ensures proper randomization.
      */
     private void determineStartingPlayer() {
-        // First make sure we have a deck ready
-        if (deck.isEmpty()) {
-            deck.initializeDeck();
-            deck.shuffle();
-        }
+        // First make sure we have a deck ready and properly shuffled
+        deck.initializeDeck(); // This now includes shuffling
         
         System.out.println(ConsoleColors.formatSubHeader("DETERMINING DEALER"));
         System.out.println(ConsoleColors.WHITE + "Each player draws a card; highest card value becomes the dealer." + ConsoleColors.RESET);
@@ -125,8 +123,6 @@ public class GameMediator {
         for (Card card : cardsToReturn) {
             deck.returnCard(card);
         }
-        
-        // Note: The dealer will shuffle the deck after this
         System.out.println(ConsoleColors.WHITE + "Cards returned to deck for shuffling." + ConsoleColors.RESET);
     }
     
