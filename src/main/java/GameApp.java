@@ -1,8 +1,9 @@
 package main.java;
 
 import main.java.game.GameMediator;
+import main.java.game.IGameMediator;
 import main.java.players.Player;
-import main.java.utils.ConsoleColors;
+import main.java.ui.GameUI;
 import main.java.utils.ConsoleLogger;
 
 /**
@@ -10,13 +11,15 @@ import main.java.utils.ConsoleLogger;
  * It handles the game lifecycle and UI interactions.
  */
 public class GameApp {
-    private GameMediator mediator;
+    private IGameMediator mediator;
+    private GameUI ui;
     
     /**
      * Constructs a new GameApp with initialized components.
      */
     public GameApp() {
         this.mediator = new GameMediator();
+        this.ui = new GameUI();
     }
     
     /**
@@ -40,7 +43,7 @@ public class GameApp {
      * Starts the game by setting up and running game rounds until completion.
      */
     public void startGame() {
-        displayWelcomeMessage();
+        ui.displayWelcomeMessage();
         
         // Create players
         mediator.createPlayers(4);
@@ -54,37 +57,7 @@ public class GameApp {
             gameOver = runGameRound();
         }
         
-        displayGameCompletionMessage();
-    }
-    
-    /**
-     * Displays the welcome message and game rules to the console.
-     */
-    private void displayWelcomeMessage() {
-        System.out.println(ConsoleColors.CYAN_BOLD + "Starting UNO Game..." + ConsoleColors.RESET);
-        System.out.println();
-        
-        System.out.println(ConsoleColors.formatHeader(ConsoleColors.RED_BOLD + "U" + 
-                                                      ConsoleColors.GREEN_BOLD + "N" + 
-                                                      ConsoleColors.BLUE_BOLD + "O" + 
-                                                      ConsoleColors.RESET + 
-                                                      ConsoleColors.YELLOW_BOLD + " GAME SIMULATOR"));
-        
-        System.out.println(ConsoleColors.WHITE_BOLD + "Game Rules:" + ConsoleColors.RESET);
-        System.out.println("• Match cards by color or number");
-        System.out.println("• Action cards: Skip, Reverse, Draw Two, Wild, Wild Draw Four");
-        System.out.println("• First player to get rid of all cards wins the round");
-        System.out.println("• Winner gets points equal to the sum of opponents' card values");
-        System.out.println("• First player to reach 500 points wins the game!");
-        System.out.println(ConsoleColors.SHORT_DIVIDER);
-    }
-    
-    /**
-     * Displays a game completion message.
-     */
-    private void displayGameCompletionMessage() {
-        System.out.println(ConsoleColors.formatHeader("GAME DEMO COMPLETED"));
-        System.out.println(ConsoleColors.YELLOW_BOLD + "Thanks for playing UNO!" + ConsoleColors.RESET);
+        ui.displayGameCompletionMessage();
     }
     
     /**

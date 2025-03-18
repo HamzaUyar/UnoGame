@@ -10,6 +10,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import main.java.cards.Card;
 import main.java.cards.actioncards.WildCard;
 import main.java.players.Player;
+import main.java.ui.GameUI;
 import main.java.utils.ConsoleColors;
 import main.java.utils.ScoreTracker;
 
@@ -18,7 +19,7 @@ import main.java.utils.ScoreTracker;
  * interactions between game components without them having to refer to each other.
  * It encapsulates the game state and rules.
  */
-public class GameMediator {
+public class GameMediator implements IGameMediator {
     private List<Player> players;
     private Player currentPlayer;
     private boolean isClockwise;
@@ -29,6 +30,8 @@ public class GameMediator {
     private GameState gameState;
     private int roundNumber = 1;
     private int dealerIndex;
+    private GameUI ui;
+    private Map<GameComponentType, List<IGameComponent>> componentRegistry;
     
     /**
      * Creates a new GameMediator instance with initialized components.
@@ -42,22 +45,48 @@ public class GameMediator {
         this.scoreTracker = new ScoreTracker();
         this.gameState = GameState.INITIALIZED;
         this.dealerIndex = 0;
+        this.ui = new GameUI();
+        this.componentRegistry = new HashMap<>();
         
-        // Set up mediator references
+        // Initialize component lists
+        for (GameComponentType type : GameComponentType.values()) {
+            componentRegistry.put(type, new ArrayList<>());
+        }
+        
+        // Set up mediator references instead of component registration for now
         this.deck.setMediator(this);
         this.drawPile.setMediator(this);
         this.discardPile.setMediator(this);
         this.scoreTracker.setMediator(this);
+        
+        // TODO: Update these components to implement IGameComponent interface
+        // registerComponent(this.deck);
+        // registerComponent(this.drawPile);
+        // registerComponent(this.discardPile);
+        // registerComponent(this.scoreTracker);
+    }
+    
+    /**
+     * Registers a game component with the mediator.
+     * 
+     * @param component The component to register
+     */
+    @Override
+    public void registerComponent(IGameComponent component) {
+        GameComponentType type = component.getComponentType();
+        componentRegistry.get(type).add(component);
+        component.setMediator(this);
     }
     
     /**
      * Starts a new game.
      * Initializes the deck, deals cards to players, and sets up the discard pile.
      */
+    @Override
     public void startGame() {
         this.gameState = GameState.IN_PROGRESS;
         
-        System.out.println(ConsoleColors.formatHeader("UNO GAME - ROUND " + roundNumber));
+        ui.displayRoundHeader(roundNumber);
         
         // Start tracking the new round
         scoreTracker.startNewRound();
@@ -83,8 +112,7 @@ public class GameMediator {
         }
         
         // 7. Print game setup
-        System.out.println(ConsoleColors.formatSubHeader("GAME SETUP COMPLETE"));
-        System.out.println(ConsoleColors.WHITE_BOLD + "Dealer/Starting player: " + ConsoleColors.YELLOW_BOLD + currentPlayer.getName() + ConsoleColors.RESET);
+        ui.displayGameSetupComplete(currentPlayer.getName());
     }
     
     /**
@@ -96,8 +124,7 @@ public class GameMediator {
         // First make sure we have a deck ready and properly shuffled
         deck.initializeDeck(); // This now includes shuffling
         
-        System.out.println(ConsoleColors.formatSubHeader("DETERMINING DEALER"));
-        System.out.println(ConsoleColors.WHITE + "Each player draws a card; highest card value becomes the dealer." + ConsoleColors.RESET);
+        ui.displayDeterminingDealerHeader();
         
         // Create a map to store player -> card drawn
         Map<Player, Card> drawnCards = new HashMap<>();
@@ -106,7 +133,7 @@ public class GameMediator {
         for (Player player : players) {
             Card drawnCard = deck.dealCards(1).get(0);
             drawnCards.put(player, drawnCard);
-            System.out.println(player.getName() + " draws " + ConsoleColors.formatCard(drawnCard.toString()));
+            ui.displayPlayerDrawingCard(player.getName(), drawnCard.toString());
         }
         
         // Find the player with the highest card value
@@ -125,16 +152,14 @@ public class GameMediator {
         }
         
         Card highestCard = drawnCards.get(startingPlayer);
-        System.out.println(ConsoleColors.highlight(startingPlayer.getName() + 
-            " has the highest card: " + ConsoleColors.formatCard(highestCard.toString()) + 
-            " and will be the dealer!"));
+        ui.displayDealerSelected(startingPlayer.getName(), highestCard.toString());
         
         // Return the drawn cards to the deck
         List<Card> cardsToReturn = new ArrayList<>(drawnCards.values());
         for (Card card : cardsToReturn) {
             deck.returnCard(card);
         }
-        System.out.println(ConsoleColors.WHITE + "Cards returned to deck for shuffling." + ConsoleColors.RESET);
+        ui.displayCardsReturnedToDeck();
     }
     
     /**
@@ -142,7 +167,7 @@ public class GameMediator {
      */
     private void shuffleDeck() {
         deck.shuffle();
-        System.out.println(ConsoleColors.WHITE + "Dealer shuffles the deck." + ConsoleColors.RESET);
+        ui.displayDeckShuffled();
     }
     
     /**
@@ -155,8 +180,7 @@ public class GameMediator {
             throw new IllegalArgumentException("Cannot deal cards to empty player list");
         }
         
-        System.out.println(ConsoleColors.formatSubHeader("DEALING CARDS"));
-        System.out.println(ConsoleColors.WHITE + "Dealer (" + currentPlayer.getName() + ") deals 7 cards to each player." + ConsoleColors.RESET);
+        ui.displayDealingCardsHeader(currentPlayer.getName());
         
         // Clear any existing cards from players' hands
         for (Player player : players) {
@@ -168,7 +192,7 @@ public class GameMediator {
         
         // Deal 7 cards to each player, one at a time in a left direction
         for (int cardNum = 0; cardNum < 7; cardNum++) {
-            System.out.println(ConsoleColors.CYAN + "\nDeal Round " + (cardNum + 1) + ":" + ConsoleColors.RESET);
+            ui.displayDealRoundHeader(cardNum + 1);
             
             for (int i = 0; i < players.size(); i++) {
                 // Calculate the player index, starting from the player after the dealer
@@ -182,22 +206,12 @@ public class GameMediator {
                     player.addCardToHand(card);
                     
                     // Display the current hand for this player
-                    StringBuilder handStr = new StringBuilder();
-                    handStr.append(ConsoleColors.WHITE_BOLD).append(player.getName()).append(": ").append(ConsoleColors.RESET);
-                    
-                    List<Card> hand = player.getHand();
-                    for (int j = 0; j < hand.size(); j++) {
-                        handStr.append(ConsoleColors.formatCard(hand.get(j).toString()));
-                        if (j < hand.size() - 1) {
-                            handStr.append(" ");
-                        }
-                    }
-                    System.out.println(handStr.toString());
+                    ui.displayPlayerHand(player.getName(), player.getHand());
                 }
             }
         }
         
-        System.out.println(ConsoleColors.GREEN + "\nAll players have been dealt 7 cards each." + ConsoleColors.RESET);
+        ui.displayAllPlayersDealt();
     }
     
     /**
@@ -225,7 +239,7 @@ public class GameMediator {
         // Place the starting card on the discard pile
         discardPile.addCard(startingCard);
         
-        System.out.println(ConsoleColors.WHITE_BOLD + "Starting card: " + ConsoleColors.formatCard(startingCard.toString()) + ConsoleColors.RESET);
+        ui.displayStartingCard(startingCard.toString());
         
         return startingCard;
     }
@@ -234,17 +248,7 @@ public class GameMediator {
      * Prints a player's hand in a nicely formatted way
      */
     private void printPlayerHand(Player player) {
-        StringBuilder handStr = new StringBuilder();
-        handStr.append(ConsoleColors.WHITE_BOLD).append(player.getName()).append("'s hand: ").append(ConsoleColors.RESET);
-        
-        List<Card> hand = player.getHand();
-        for (int i = 0; i < hand.size(); i++) {
-            handStr.append(ConsoleColors.formatCard(hand.get(i).toString()));
-            if (i < hand.size() - 1) {
-                handStr.append(" ");
-            }
-        }
-        System.out.println(handStr.toString());
+        ui.displayDetailedPlayerHand(player.getName(), player.getHand());
     }
     
     /**
@@ -253,16 +257,17 @@ public class GameMediator {
      * 
      * @param player The player whose turn it is
      */
+    @Override
     public void handleTurn(Player player) {
         if (this.gameState != GameState.IN_PROGRESS) {
             throw new IllegalStateException("Cannot handle turn when game is not in progress");
         }
         
-        System.out.println(ConsoleColors.formatSubHeader(player.getName() + "'S TURN"));
+        ui.displayPlayerTurnHeader(player.getName());
         
         // 1. Check if player has playable cards
         Card topCard = discardPile.getTopCard();
-        System.out.println(ConsoleColors.WHITE_BOLD + "Top card: " + ConsoleColors.formatCard(topCard.toString()) + ConsoleColors.RESET);
+        ui.displayTopCard(topCard.toString());
         
         // Print current player's hand
         printPlayerHand(player);
@@ -271,7 +276,7 @@ public class GameMediator {
         
         if (selectedCard != null) {
             // Player plays a card
-            System.out.println(ConsoleColors.highlight(player.getName() + " plays " + ConsoleColors.formatCard(selectedCard.toString())));
+            ui.displayPlayerPlayingCard(player.getName(), selectedCard.toString());
             player.playCard(selectedCard);
             discardPile.addCard(selectedCard);
             
@@ -281,13 +286,13 @@ public class GameMediator {
             applyCardEffect(selectedCard);
         } else {
             // Player must draw a card
-            System.out.println(ConsoleColors.WHITE + player.getName() + " has no playable cards and draws a card" + ConsoleColors.RESET);
+            ui.displayPlayerDrawingCardOnTurn(player.getName());
             Card drawnCard = drawPile.drawCard();
             player.addCardToHand(drawnCard);
             
             // Check if drawn card is playable
             if (isPlayable(drawnCard, topCard)) {
-                System.out.println(ConsoleColors.highlight(player.getName() + " plays drawn card: " + ConsoleColors.formatCard(drawnCard.toString())));
+                ui.displayPlayerPlayingDrawnCard(player.getName(), drawnCard.toString());
                 player.playCard(drawnCard);
                 discardPile.addCard(drawnCard);
                 
@@ -296,18 +301,17 @@ public class GameMediator {
                 
                 applyCardEffect(drawnCard);
             } else {
-                System.out.println(ConsoleColors.WHITE + "Drawn card cannot be played. End turn." + ConsoleColors.RESET);
+                ui.displayDrawnCardCannotBePlayed();
             }
         }
         
         // Check if player has won
         if (player.getHand().isEmpty()) {
-            System.out.println(ConsoleColors.formatHeader(ConsoleColors.YELLOW_BOLD + "🎉 " + player.getName() + " WINS THE ROUND! 🎉"));
+            ui.displayPlayerWinsRound(player.getName());
             endRound(player);
             return;
         } else {
-            System.out.println(ConsoleColors.WHITE + player.getName() + " has " + 
-                ConsoleColors.YELLOW_BOLD + player.getHand().size() + ConsoleColors.WHITE + " cards left" + ConsoleColors.RESET);
+            ui.displayPlayerCardCount(player.getName(), player.getHand().size());
         }
         
         // Move to next player
@@ -328,8 +332,8 @@ public class GameMediator {
         // Make sure the card has a mediator reference
         card.setMediator(this);
         
-        System.out.println(ConsoleColors.formatSubHeader("APPLYING CARD EFFECT"));
-        System.out.println(ConsoleColors.WHITE + "Applying effect of " + ConsoleColors.formatCard(card.toString()) + ConsoleColors.RESET);
+        ui.displayApplyingCardEffectHeader();
+        ui.displayApplyingCardEffect(card.toString());
         
         card.applyEffect();
     }
@@ -340,7 +344,7 @@ public class GameMediator {
      */
     private void replenishDrawPile() {
         if (gameState == GameState.IN_PROGRESS && discardPile.size() > 1) {
-            System.out.println(ConsoleColors.CYAN_BOLD + "Draw pile empty! Reshuffling discard pile..." + ConsoleColors.RESET);
+            ui.displayReplenishingDrawPile();
             
             // Keep the top card
             Card topCard = discardPile.getTopCard();
@@ -360,7 +364,7 @@ public class GameMediator {
             // Shuffle the draw pile
             drawPile.shuffle();
             
-            System.out.println(ConsoleColors.CYAN_BOLD + "Discard pile reshuffled and added to draw pile." + ConsoleColors.RESET);
+            ui.displayDiscardPileReshuffled();
         }
     }
     
@@ -369,6 +373,7 @@ public class GameMediator {
      * 
      * @param winner The player who won the round
      */
+    @Override
     public void endRound(Player winner) {
         this.gameState = GameState.ROUND_OVER;
         
@@ -387,13 +392,11 @@ public class GameMediator {
                     .max(Comparator.comparing(player -> scoreTracker.getScore(player)))
                     .orElse(winner);
             
-            System.out.println(ConsoleColors.formatHeader(ConsoleColors.YELLOW_BOLD + "🏆 " + 
-                    gameWinner.getName() + " WINS THE GAME WITH " + 
-                    scoreTracker.getScore(gameWinner) + " POINTS! 🏆" + ConsoleColors.RESET));
+            ui.displayPlayerWinsGame(gameWinner.getName(), scoreTracker.getScore(gameWinner));
         } else {
             // Prepare for next round
             roundNumber++;
-            System.out.println(ConsoleColors.CYAN_BOLD + "\nPreparing for round " + roundNumber + "...\n" + ConsoleColors.RESET);
+            ui.displayPreparingForNextRound(roundNumber);
             
             // Move dealer to the next player for the new round
             dealerIndex = (dealerIndex + 1) % players.size();
@@ -423,6 +426,7 @@ public class GameMediator {
      * Shuffles all players' hands together and redistributes them.
      * Used by the Shuffle Hands card.
      */
+    @Override
     public void redistributeHands() {
         // Gather all cards
         List<Card> allCards = new ArrayList<>();
@@ -488,6 +492,7 @@ public class GameMediator {
      * @param player The player who played the Wild Draw Four
      * @return True if the play is valid, false otherwise
      */
+    @Override
     public boolean validateWildDrawFour(Player player) {
         Card topCard = discardPile.getTopCard();
         String topColor = topCard.getColor();
@@ -508,26 +513,11 @@ public class GameMediator {
     }
     
     /**
-     * Creates and adds a specified number of players to the game.
-     * 
-     * @param numPlayers The number of players to create and add
-     */
-    public void createPlayers(int numPlayers) {
-        if (this.gameState != GameState.INITIALIZED) {
-            throw new IllegalStateException("Cannot add players after game has started");
-        }
-        
-        for (int i = 1; i <= numPlayers; i++) {
-            Player player = new Player("Player" + i);
-            addPlayer(player);
-        }
-    }
-    
-    /**
      * Adds a player to the game.
      * 
      * @param player The player to add
      */
+    @Override
     public void addPlayer(Player player) {
         if (this.gameState != GameState.INITIALIZED) {
             throw new IllegalStateException("Cannot add players after game has started");
@@ -541,6 +531,7 @@ public class GameMediator {
      * 
      * @return The next player
      */
+    @Override
     public Player getNextPlayer() {
         int currentIndex = players.indexOf(currentPlayer);
         int nextIndex;
@@ -557,6 +548,7 @@ public class GameMediator {
     /**
      * Switches the direction of play.
      */
+    @Override
     public void switchDirection() {
         isClockwise = !isClockwise;
     }
@@ -566,6 +558,7 @@ public class GameMediator {
      * 
      * @return The drawn card
      */
+    @Override
     public Card requestDraw() {
         Card drawnCard = drawPile.drawCard();
         
@@ -576,7 +569,7 @@ public class GameMediator {
             
             // If still null after replenishing, create a new Wild card as fallback
             if (drawnCard == null) {
-                System.out.println(ConsoleColors.RED_BOLD + "Warning: No cards left in deck or discard pile! Creating a fallback Wild card." + ConsoleColors.RESET);
+                ui.displayNoCardsLeftWarning();
                 drawnCard = new WildCard();
                 drawnCard.setMediator(this);
             }
@@ -588,8 +581,9 @@ public class GameMediator {
     /**
      * Gets all players in the game.
      * 
-     * @return The list of players
+     * @return A copy of the list of players
      */
+    @Override
     public List<Player> getPlayers() {
         return new ArrayList<>(players);
     }
@@ -599,6 +593,7 @@ public class GameMediator {
      * 
      * @return The current player
      */
+    @Override
     public Player getCurrentPlayer() {
         return currentPlayer;
     }
@@ -608,6 +603,7 @@ public class GameMediator {
      * 
      * @param player The new current player
      */
+    @Override
     public void setCurrentPlayer(Player player) {
         this.currentPlayer = player;
     }
@@ -617,7 +613,25 @@ public class GameMediator {
      * 
      * @return True if the game is over, false otherwise
      */
+    @Override
     public boolean isGameOver() {
         return this.gameState == GameState.GAME_OVER;
+    }
+    
+    /**
+     * Creates and adds a specified number of players to the game.
+     * 
+     * @param numPlayers The number of players to create and add
+     */
+    @Override
+    public void createPlayers(int numPlayers) {
+        if (this.gameState != GameState.INITIALIZED) {
+            throw new IllegalStateException("Cannot add players after game has started");
+        }
+        
+        for (int i = 1; i <= numPlayers; i++) {
+            Player player = new Player("Player" + i);
+            addPlayer(player);
+        }
     }
 } 

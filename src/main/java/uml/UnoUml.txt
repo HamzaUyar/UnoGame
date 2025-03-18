@@ -1,194 +1,309 @@
 @startuml UnoGame
 
-' Main Game Classes
-class GameApp {
-  -mediator: GameMediator
-  +main(args: String[]): void
-  +GameApp()
-  +startGame(): void
-  -displayWelcomeMessage(): void
-  -displayGameCompletionMessage(): void
-  -runGameRound(): boolean
+' Layout and styling directives
+skinparam monochrome false
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam classBackgroundColor #FEFEFE
+skinparam classBorderColor #999999
+skinparam interfaceBackgroundColor #B7E4F7
+skinparam interfaceBorderColor #6C9EBF
+skinparam enumBackgroundColor #F5D6C6
+skinparam enumBorderColor #D9986A
+skinparam packageBackgroundColor transparent
+skinparam packageBorderColor #AAAAAA
+skinparam arrowColor #666666
+skinparam linetype ortho
+skinparam nodesep 80
+skinparam ranksep 100
+
+' Organize classes in packages
+package "Core Game" {
+  class GameApp {
+    -mediator: IGameMediator
+    -ui: GameUI
+    +main(args: String[]): void
+    +GameApp()
+    +startGame(): void
+    -runGameRound(): boolean
+  }
+
+  enum GameState {
+    INITIALIZED
+    IN_PROGRESS
+    ROUND_OVER
+    GAME_OVER
+  }
 }
 
-enum GameState {
-  INITIALIZED
-  IN_PROGRESS
-  ROUND_OVER
-  GAME_OVER
+package "Mediator Pattern" {
+  interface IGameMediator {
+    +registerComponent(component: IGameComponent): void
+    +startGame(): void
+    +handleTurn(player: Player): void
+    +endRound(winner: Player): void
+    +createPlayers(numPlayers: int): void
+    +addPlayer(player: Player): void
+    +getNextPlayer(): Player
+    +switchDirection(): void
+    +requestDraw(): Card
+    +getPlayers(): List<Player>
+    +getCurrentPlayer(): Player
+    +setCurrentPlayer(player: Player): void
+    +redistributeHands(): void
+    +validateWildDrawFour(player: Player): boolean
+    +isGameOver(): boolean
+  }
+
+  class GameMediator {
+    -players: List<Player>
+    -currentPlayer: Player
+    -isClockwise: boolean
+    -deck: Deck
+    -drawPile: DrawPile
+    -discardPile: DiscardPile
+    -scoreTracker: ScoreTracker
+    -gameState: GameState
+    -roundNumber: int
+    -dealerIndex: int
+    -ui: GameUI
+    -componentRegistry: Map<GameComponentType, List<IGameComponent>>
+    +GameMediator()
+    +registerComponent(component: IGameComponent): void
+    +startGame(): void
+    -determineStartingPlayer(): void
+    -shuffleDeck(): void
+    -dealCards(): void
+    -setupPiles(): Card
+    +handleTurn(player: Player): void
+    -applyCardEffect(card: Card): void
+    -replenishDrawPile(): void
+    +endRound(winner: Player): void
+    +redistributeHands(): void
+    -isPlayable(card: Card, topCard: Card): boolean
+    +validateWildDrawFour(player: Player): boolean
+    +createPlayers(numPlayers: int): void
+    +addPlayer(player: Player): void
+    +getNextPlayer(): Player
+    +switchDirection(): void
+    +requestDraw(): Card
+    +getPlayers(): List<Player>
+    +getCurrentPlayer(): Player
+    +setCurrentPlayer(player: Player): void
+    +isGameOver(): boolean
+    -isGameWon(): boolean
+    -printPlayerHand(player: Player): void
+  }
+
+  interface IGameComponent {
+    +setMediator(mediator: IGameMediator): void
+    +getComponentType(): GameComponentType
+  }
+
+  enum GameComponentType {
+    PLAYER
+    DECK
+    DRAW_PILE
+    DISCARD_PILE
+    SCORE_TRACKER
+    CARD
+  }
 }
 
-class GameMediator {
-  -players: List<Player>
-  -currentPlayer: Player
-  -isClockwise: boolean
-  -deck: Deck
-  -drawPile: DrawPile
-  -discardPile: DiscardPile
-  -scoreTracker: ScoreTracker
-  -gameState: GameState
-  -roundNumber: int
-  -dealerIndex: int
-  +GameMediator()
-  +startGame(): void
-  -determineStartingPlayer(): void
-  -shuffleDeck(): void
-  -dealCards(): void
-  -setupPiles(): Card
-  +handleTurn(player: Player): void
-  -applyCardEffect(card: Card): void
-  -replenishDrawPile(): void
-  +endRound(winner: Player): void
-  +redistributeHands(): void
-  -isPlayable(card: Card, topCard: Card): boolean
-  +validateWildDrawFour(player: Player): boolean
-  +createPlayers(numPlayers: int): void
-  +addPlayer(player: Player): void
-  +getNextPlayer(): Player
-  +switchDirection(): void
-  +requestDraw(): Card
-  +getPlayers(): List<Player>
-  +getCurrentPlayer(): Player
-  +setCurrentPlayer(player: Player): void
-  +isGameOver(): boolean
+package "Presentation" {
+  class GameUI {
+    +displayWelcomeMessage(): void
+    +displayGameCompletionMessage(): void
+    +displayRoundHeader(roundNumber: int): void
+    +displayGameSetupComplete(dealerName: String): void
+    +displayDeterminingDealerHeader(): void
+    +displayPlayerDrawingCard(playerName: String, cardDescription: String): void
+    +displayDealerSelected(dealerName: String, cardDescription: String): void
+    +displayCardsReturnedToDeck(): void
+    +displayDeckShuffled(): void
+    +displayDealingCardsHeader(dealerName: String): void
+    +displayDealRoundHeader(roundNum: int): void
+    +displayPlayerHand(playerName: String, hand: List<Card>): void
+    +displayAllPlayersDealt(): void
+    +displayStartingCard(cardDescription: String): void
+    +displayPlayerTurnHeader(playerName: String): void
+    +displayTopCard(cardDescription: String): void
+    +displayPlayerPlayingCard(playerName: String, cardDescription: String): void
+    +displayPlayerDrawingCardOnTurn(playerName: String): void
+    +displayPlayerPlayingDrawnCard(playerName: String, cardDescription: String): void
+    +displayDrawnCardCannotBePlayed(): void
+    +displayPlayerCardCount(playerName: String, cardCount: int): void
+    +displayPlayerWinsRound(playerName: String): void
+    +displayPlayerWinsGame(playerName: String, score: int): void
+    +displayPreparingForNextRound(roundNumber: int): void
+    +displayApplyingCardEffectHeader(): void
+    +displayApplyingCardEffect(cardDescription: String): void
+    +displayReplenishingDrawPile(): void
+    +displayDiscardPileReshuffled(): void
+    +displayNoCardsLeftWarning(): void
+    +displayDetailedPlayerHand(playerName: String, hand: List<Card>): void
+  }
 }
 
-class Player {
-  -name: String
-  -hand: List<Card>
-  -mediator: GameMediator
-  -isDealer: boolean
-  +Player(name: String)
-  +getName(): String
-  +getHand(): List<Card>
-  +addCardToHand(card: Card): void
-  +playCard(card: Card): Card
-  +selectPlayableCard(topCard: Card): Card
-  +clearHand(): void
-  +setMediator(mediator: GameMediator): void
-  +setAsDealer(isDealer: boolean): void
+package "Game Components" {
+  together {
+    class Player {
+      -name: String
+      -hand: List<Card>
+      -mediator: GameMediator
+      -isDealer: boolean
+      +Player(name: String)
+      +getName(): String
+      +getHand(): List<Card>
+      +addCardToHand(card: Card): void
+      +playCard(card: Card): Card
+      +selectPlayableCard(topCard: Card): Card
+      +clearHand(): void
+      +setMediator(mediator: GameMediator): void
+      +setAsDealer(isDealer: boolean): void
+      +calculateHandValue(): int
+    }
+
+    class ScoreTracker {
+      -scores: Map<Player, Integer>
+      -cardsPlayed: int
+      -roundStartTime: long
+      -roundWinner: Player
+      -mediator: GameMediator
+      +ScoreTracker()
+      +updateScores(winner: Player, players: List<Player>): void
+      +getScore(player: Player): int
+      +startNewRound(): void
+      +recordCardPlayed(): void
+      +setRoundWinner(player: Player): void
+      +getRoundDuration(): long
+      -checkWinCondition(): boolean
+      +setMediator(mediator: GameMediator): void
+      +logRoundToCSV(roundNumber: int): void
+    }
+  }
+
+  together {
+    class Deck {
+      -cards: List<Card>
+      -mediator: GameMediator
+      +Deck()
+      +initializeDeck(): void
+      +shuffle(): void
+      +dealCards(numCards: int): List<Card>
+      +returnCard(card: Card): void
+      +getCards(): List<Card>
+      +setMediator(mediator: GameMediator): void
+    }
+
+    class DrawPile {
+      -cards: List<Card>
+      -mediator: GameMediator
+      +DrawPile()
+      +drawCard(): Card
+      +setCards(cards: List<Card>): void
+      +addCard(card: Card): void
+      +shuffle(): void
+      +size(): int
+      +setMediator(mediator: GameMediator): void
+    }
+
+    class DiscardPile {
+      -cards: List<Card>
+      -mediator: GameMediator
+      +DiscardPile()
+      +addCard(card: Card): void
+      +getTopCard(): Card
+      +getCards(): List<Card>
+      +clearCards(): void
+      +size(): int
+      +setMediator(mediator: GameMediator): void
+    }
+  }
 }
 
-class ScoreTracker {
-  -scores: Map<Player, Integer>
-  -cardsPlayed: int
-  -roundStartTime: long
-  -roundWinner: Player
-  -mediator: GameMediator
-  +ScoreTracker()
-  +updateScores(winner: Player, players: List<Player>): void
-  +getScore(player: Player): int
-  +startNewRound(): void
-  +recordCardPlayed(): void
-  +setRoundWinner(player: Player): void
-  +getRoundDuration(): long
-  -checkWinCondition(): boolean
-  +setMediator(mediator: GameMediator): void
-  +logRoundToCSV(roundNumber: int): void
-}
+package "Card Hierarchy" {
+  abstract class Card {
+    #color: String
+    #type: String
+    #value: int
+    #mediator: GameMediator
+    +Card(color: String, type: String, value: int)
+    +getColor(): String
+    +getType(): String
+    +getValue(): int
+    +toString(): String
+    +setMediator(mediator: GameMediator): void
+    +applyEffect(): void
+  }
 
-class Deck {
-  -cards: List<Card>
-  -mediator: GameMediator
-  +Deck()
-  +initializeDeck(): void
-  +shuffle(): void
-  +dealCards(numCards: int): List<Card>
-  +returnCard(card: Card): void
-  +getCards(): List<Card>
-  +setMediator(mediator: GameMediator): void
-}
+  class NumberCard {
+    +NumberCard(color: String, number: int)
+    +applyEffect(): void
+  }
 
-class DrawPile {
-  -cards: List<Card>
-  -mediator: GameMediator
-  +DrawPile()
-  +drawCard(): Card
-  +setCards(cards: List<Card>): void
-  +addCard(card: Card): void
-  +shuffle(): void
-  +size(): int
-  +setMediator(mediator: GameMediator): void
-}
+  abstract class ActionCard {
+    +ActionCard(color: String, type: String, value: int)
+  }
 
-class DiscardPile {
-  -cards: List<Card>
-  -mediator: GameMediator
-  +DiscardPile()
-  +addCard(card: Card): void
-  +getTopCard(): Card
-  +getCards(): List<Card>
-  +clearCards(): void
-  +size(): int
-  +setMediator(mediator: GameMediator): void
-}
+  together {
+    class SkipCard {
+      +SkipCard(color: String)
+      +applyEffect(): void
+    }
 
-' Card Classes
-abstract class Card {
-  #color: String
-  #type: String
-  #value: int
-  #mediator: GameMediator
-  +Card(color: String, type: String, value: int)
-  +getColor(): String
-  +getType(): String
-  +getValue(): int
-  +toString(): String
-  +setMediator(mediator: GameMediator): void
-  +applyEffect(): void
-}
+    class ReverseCard {
+      +ReverseCard(color: String)
+      +applyEffect(): void
+    }
 
-class NumberCard {
-  +NumberCard(color: String, number: int)
-  +applyEffect(): void
-}
+    class DrawTwoCard {
+      +DrawTwoCard(color: String)
+      +applyEffect(): void
+    }
 
-abstract class ActionCard {
-  +ActionCard(color: String, type: String, value: int)
-}
+    class ShuffleHandsCard {
+      +ShuffleHandsCard()
+      +applyEffect(): void
+    }
+  }
 
-class SkipCard {
-  +SkipCard(color: String)
-  +applyEffect(): void
-}
+  together {
+    class WildCard {
+      +WildCard()
+      +applyEffect(): void
+    }
 
-class ReverseCard {
-  +ReverseCard(color: String)
-  +applyEffect(): void
-}
-
-class DrawTwoCard {
-  +DrawTwoCard(color: String)
-  +applyEffect(): void
-}
-
-class WildCard {
-  +WildCard()
-  +applyEffect(): void
-}
-
-class WildDrawFourCard {
-  +WildDrawFourCard()
-  +applyEffect(): void
-}
-
-class ShuffleHandsCard {
-  +ShuffleHandsCard()
-  +applyEffect(): void
+    class WildDrawFourCard {
+      +WildDrawFourCard()
+      +applyEffect(): void
+    }
+  }
 }
 
 ' Relationships
-GameApp --> GameMediator : creates >
+GameApp --> IGameMediator : uses >
+GameApp --> GameUI : uses >
 GameApp ..> GameState : uses >
 
+GameMediator ..|> IGameMediator : implements
+GameMediator --> GameUI : uses >
 GameMediator --> Deck : uses >
 GameMediator --> DrawPile : uses >
 GameMediator --> DiscardPile : uses >
 GameMediator --> ScoreTracker : uses >
 GameMediator --> Player : manages & creates >
 GameMediator --> GameState : uses >
-
 GameMediator --> Card : uses >
+GameMediator --> GameComponentType : uses >
+GameMediator o--> "0..*" IGameComponent : registers >
+
+IGameComponent <|.. Player : implements
+IGameComponent <|.. Deck : will implement
+IGameComponent <|.. DrawPile : will implement
+IGameComponent <|.. DiscardPile : will implement
+IGameComponent <|.. ScoreTracker : will implement
+IGameComponent <|.. Card : will implement
 
 Card <|-- NumberCard : extends
 Card <|-- ActionCard : extends

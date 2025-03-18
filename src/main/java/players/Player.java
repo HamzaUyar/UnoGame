@@ -134,12 +134,12 @@ public class Player {
 
     /**
      * Gets the player's hand.
-     * Returns an unmodifiable view of the hand to enforce encapsulation.
+     * Returns a defensive copy to prevent external modification.
      * 
-     * @return An unmodifiable view of the player's hand
+     * @return A copy of the player's hand
      */
     public List<Card> getHand() {
-        return Collections.unmodifiableList(hand);
+        return new ArrayList<>(hand);
     }
 
     /**
