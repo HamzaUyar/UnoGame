@@ -107,11 +107,11 @@ public class GameMediator {
         currentPlayer = getNextPlayer();
     }
     
-    public void applyCardEffect(Card card) {
+    private void applyCardEffect(Card card) {
         card.applyEffect(this);
     }
     
-    public void replenishDrawPile() {
+    private void replenishDrawPile() {
         if (drawPile.isEmpty()) {
             System.out.println("Draw pile is empty. Shuffling discard pile.");
             Card topCard = discardPile.removeTopCard();
@@ -122,7 +122,7 @@ public class GameMediator {
         }
     }
     
-    public void endRound(Player winner) {
+    private void endRound(Player winner) {
         scoreTracker.updateScores(winner, players);
         scoreTracker.logRoundToCSV(1); // Replace with actual round number
         
@@ -159,10 +159,10 @@ public class GameMediator {
     }
     
     private boolean isPlayable(Card card, Card topCard) {
-        return card.getColor().equals(topCard.getColor()) || 
-               card.getType().equals(topCard.getType()) ||
-               card.getType().equals("Wild") ||
-               card.getType().equals("Wild Draw Four");
+        return  card.getColor().equals(topCard.getColor()) || 
+                card.getType().equals(topCard.getType()) ||
+                card.getType().equals("Wild") ||
+                card.getType().equals("Wild Draw Four");
     }
     
     // Getters and setters
