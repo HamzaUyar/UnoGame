@@ -1,14 +1,14 @@
-package main.java.driver;
+package main.java;
 
 import main.java.game.GameMediator;
 import main.java.players.Player;
 import main.java.utils.ConsoleColors;
 
 /**
- * GameDriver serves as the entry point for the UNO game application.
+ * GameApp serves as the entry point for the UNO game application.
  * It follows the Facade pattern by providing a simplified interface to the complex game system.
  */
-public class GameDriver {
+public class GameApp {
     
     /**
      * The main method that initializes and runs the UNO game.
@@ -16,8 +16,11 @@ public class GameDriver {
      * @param args Command line arguments (not used)
      */
     public static void main(String[] args) {
-        GameDriver driver = new GameDriver();
-        driver.runGame();
+        System.out.println(ConsoleColors.CYAN_BOLD + "Starting UNO Game..." + ConsoleColors.RESET);
+        System.out.println();
+        
+        GameApp app = new GameApp();
+        app.runGame();
     }
     
     /**
@@ -35,8 +38,11 @@ public class GameDriver {
         // Start the game
         mediator.startGame();
         
-        // Run the game for a maximum of 20 turns (just for demonstration)
-        runGameTurns(mediator, 20);
+        // Run the game until someone wins (reaches 500 points)
+        boolean gameOver = false;
+        while (!gameOver) {
+            gameOver = runGameRound(mediator);
+        }
         
         printGameCompletionMessage();
     }
@@ -91,20 +97,30 @@ public class GameDriver {
     }
     
     /**
-     * Runs the game for a specified maximum number of turns.
+     * Runs a single round of the game until someone wins the round.
      * 
      * @param mediator The game mediator
-     * @param maxTurns The maximum number of turns to run
+     * @return True if the game is over (someone reached 500 points), false if just the round ended
      */
-    private void runGameTurns(GameMediator mediator, int maxTurns) {
-        for (int i = 0; i < maxTurns; i++) {
+    private boolean runGameRound(GameMediator mediator) {
+        boolean roundEnded = false;
+        boolean gameOver = false;
+        
+        while (!roundEnded) {
             Player currentPlayer = mediator.getCurrentPlayer();
             mediator.handleTurn(currentPlayer);
             
-            // Game might have ended after this turn
+            // Check if player won the round (empty hand)
             if (currentPlayer.getHand().isEmpty()) {
-                break;
+                roundEnded = true;
+                
+                // Check if game is over (player reached 500 points)
+                if (mediator.isGameOver()) {
+                    gameOver = true;
+                }
             }
         }
+        
+        return gameOver;
     }
 } 

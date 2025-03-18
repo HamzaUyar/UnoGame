@@ -1,14 +1,17 @@
 package main.java.cards.actioncards;
 
-import java.util.Random;
+import java.util.List;
 
+import main.java.cards.Card;
 import main.java.game.GameMediator;
 import main.java.players.Player;
+import main.java.utils.ConsoleColors;
 
-public class WildDrawFourCard extends ActionCard {
+public class WildDrawFourCard extends WildCard {
 
     public WildDrawFourCard() {
-        super("", "Wild Draw Four", 50); // No color initially
+        super();
+        this.type = "Wild Draw Four"; // Override type from parent class
     }
 
     @Override
@@ -17,28 +20,20 @@ public class WildDrawFourCard extends ActionCard {
         
         // Validate play (current player has no cards matching the color on top)
         if (!mediator.validateWildDrawFour(currentPlayer)) {
-            System.out.println("Invalid Wild Draw Four play! Player has matching color card.");
+            System.out.println(ConsoleColors.RED_BOLD + "Invalid Wild Draw Four play! Player has matching color card." + ConsoleColors.RESET);
             return;
         }
         
-        // Simulate player choosing a color
-        String[] colors = {"Red", "Green", "Blue", "Yellow"};
-        Random random = new Random();
-        String chosenColor = colors[random.nextInt(colors.length)];
+        // Select color using the parent class method (most frequent in hand)
+        String chosenColor = selectColorBasedOnPlayerHand(currentPlayer);
         
         // Set the color of the card
         this.color = chosenColor;
         
-        // Force next player to draw 4 cards
-        Player nextPlayer = mediator.getNextPlayer();
-        for (int i = 0; i < 4; i++) {
-            nextPlayer.drawCard();
-        }
-        
-        // Skip the next player's turn
-        mediator.setCurrentPlayer(mediator.getNextPlayer());
-        
-        System.out.println("Wild Draw Four played! Color changed to " + chosenColor);
-        System.out.println(nextPlayer.getName() + " draws 4 cards and loses their turn!");
+        // Display color change
+        System.out.println(ConsoleColors.highlight("🌈➕ " + currentPlayer.getName() + " changes color to " + 
+            chosenColor + " and next player draws 4 cards! 🌈➕"));
+                
+        // Next player effects handled by GameMediator
     }
 } 

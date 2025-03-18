@@ -1,8 +1,14 @@
 package main.java.cards.actioncards;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
+import main.java.cards.Card;
 import main.java.game.GameMediator;
+import main.java.players.Player;
+import main.java.utils.ConsoleColors;
 
 public class WildCard extends ActionCard {
 
@@ -12,14 +18,63 @@ public class WildCard extends ActionCard {
 
     @Override
     public void applyEffect(GameMediator mediator) {
-        // Simulate player choosing a color
-        String[] colors = {"Red", "Green", "Blue", "Yellow"};
-        Random random = new Random();
-        String chosenColor = colors[random.nextInt(colors.length)];
+        Player currentPlayer = mediator.getCurrentPlayer();
+        String chosenColor = selectColorBasedOnPlayerHand(currentPlayer);
         
         // Set the color of the card
         this.color = chosenColor;
         
-        System.out.println("Wild card played! Color changed to " + chosenColor);
+        System.out.println(ConsoleColors.highlight("🌈 " + currentPlayer.getName() + " changes color to " + 
+            ConsoleColors.formatColor(chosenColor) + "! 🌈"));
+    }
+    
+    /**
+     * Selects a color based on the player's hand.
+     * Chooses the color the player has the most cards of, or randomly if tied.
+     * 
+     * @param player The player who played the card
+     * @return The selected color
+     */
+    protected String selectColorBasedOnPlayerHand(Player player) {
+        List<Card> hand = player.getHand();
+        
+        // Count cards by color
+        Map<String, Integer> colorCounts = new HashMap<>();
+        colorCounts.put("Red", 0);
+        colorCounts.put("Green", 0);
+        colorCounts.put("Blue", 0);
+        colorCounts.put("Yellow", 0);
+        
+        // Count cards of each color
+        for (Card card : hand) {
+            String cardColor = card.getColor();
+            if (cardColor != null && !cardColor.isEmpty() && !cardColor.equals("")) {
+                colorCounts.put(cardColor, colorCounts.getOrDefault(cardColor, 0) + 1);
+            }
+        }
+        
+        // Find the color with the maximum count
+        String maxColor = "Red"; // Default
+        int maxCount = -1;
+        boolean isTied = false;
+        
+        for (Map.Entry<String, Integer> entry : colorCounts.entrySet()) {
+            if (entry.getValue() > maxCount) {
+                maxColor = entry.getKey();
+                maxCount = entry.getValue();
+                isTied = false;
+            } else if (entry.getValue() == maxCount && maxCount > 0) {
+                isTied = true;
+            }
+        }
+        
+        // If tied or no colored cards, choose randomly
+        if (isTied || maxCount == 0) {
+            String[] colors = {"Red", "Green", "Blue", "Yellow"};
+            Random random = new Random();
+            maxColor = colors[random.nextInt(colors.length)];
+        }
+        
+        return maxColor;
     }
 } 

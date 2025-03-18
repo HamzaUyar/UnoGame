@@ -23,13 +23,18 @@ import main.java.players.Player;
 public class ScoreTracker {
     private final Map<Player, Integer> scores;
     private final String csvPath;
-    private static final String CSV_HEADER = "Round,Player1,Player2,Player3,Player4";
+    private static final String CSV_HEADER = "Round,Player1,Player2,Player3,Player4,Winner,CardsPlayed,RoundDuration";
+    private int cardsPlayedInRound;
+    private long roundStartTime;
+    private String roundWinner;
     
     /**
      * Constructs a new ScoreTracker with the default CSV file path.
      */
     public ScoreTracker() {
-        this("resources/scores.csv");
+        this("csv/scores.csv");
+        this.cardsPlayedInRound = 0;
+        this.roundStartTime = System.currentTimeMillis();
     }
     
     /**
@@ -49,7 +54,7 @@ public class ScoreTracker {
      * Creates the directory and file if they don't exist.
      */
     private void initializeCSVFile() {
-        // Create resources directory if it doesn't exist
+        // Create csv directory if it doesn't exist
         File directory = new File(Paths.get(csvPath).getParent().toString());
         if (!directory.exists()) {
             directory.mkdirs();
@@ -72,6 +77,22 @@ public class ScoreTracker {
     }
     
     /**
+     * Records that a card was played in the current round.
+     */
+    public void recordCardPlayed() {
+        cardsPlayedInRound++;
+    }
+    
+    /**
+     * Starts tracking a new round.
+     */
+    public void startNewRound() {
+        cardsPlayedInRound = 0;
+        roundStartTime = System.currentTimeMillis();
+        roundWinner = "";
+    }
+    
+    /**
      * Updates scores based on the round outcome.
      * The winner gets points equal to the sum of all opponent's card values.
      * 
@@ -83,6 +104,9 @@ public class ScoreTracker {
         if (winner == null || players == null) {
             throw new IllegalArgumentException("Winner and players list cannot be null");
         }
+        
+        // Record round winner
+        roundWinner = winner.getName();
         
         // Calculate score from opponents' cards
         int roundScore = 0;
@@ -142,19 +166,35 @@ public class ScoreTracker {
      * @param round The round number
      */
     public void logRoundToCSV(int round) {
+        // Calculate round duration in seconds
+        long roundDuration = (System.currentTimeMillis() - roundStartTime) / 1000;
+        
         try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(csvPath), 
                 StandardCharsets.UTF_8, StandardOpenOption.APPEND)) {
             StringBuilder line = new StringBuilder();
             line.append(round);
             
-            for (Map.Entry<Player, Integer> entry : scores.entrySet()) {
-                line.append(",").append(entry.getValue());
+            // Add player scores
+            for (int i = 1; i <= 4; i++) {
+                int score = 0;
+                for (Map.Entry<Player, Integer> entry : scores.entrySet()) {
+                    if (entry.getKey().getName().equals("Player" + i)) {
+                        score = entry.getValue();
+                        break;
+                    }
+                }
+                line.append(",").append(score);
             }
+            
+            // Add additional stats
+            line.append(",").append(roundWinner)
+                .append(",").append(cardsPlayedInRound)
+                .append(",").append(roundDuration);
             
             writer.write(line.toString());
             writer.newLine();
             
-            System.out.println(ConsoleColors.WHITE + "Scores saved to " + csvPath + ConsoleColors.RESET);
+            System.out.println(ConsoleColors.WHITE + "Scores and stats saved to " + csvPath + ConsoleColors.RESET);
         } catch (IOException e) {
             System.err.println(ConsoleColors.RED + "Error writing to scores file: " + e.getMessage() + ConsoleColors.RESET);
         }

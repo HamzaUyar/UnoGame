@@ -114,4 +114,25 @@ public class ConsoleColors {
     public static String highlight(String text) {
         return YELLOW_BOLD + text + RESET;
     }
+
+    /**
+     * Formats a color name with its respective ANSI color.
+     * 
+     * @param color The color name to format
+     * @return The formatted color name
+     */
+    public static String formatColor(String color) {
+        switch (color.toLowerCase()) {
+            case "red":
+                return RED_BOLD + color + RESET;
+            case "green":
+                return GREEN_BOLD + color + RESET;
+            case "blue":
+                return BLUE_BOLD + color + RESET;
+            case "yellow":
+                return YELLOW_BOLD + color + RESET;
+            default:
+                return WHITE_BOLD + color + RESET;
+        }
+    }
 } 
