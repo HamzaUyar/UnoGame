@@ -92,6 +92,18 @@ public class Deck {
     }
     
     /**
+     * Returns a card to the deck.
+     * Used when returning cards used to determine starting player.
+     * 
+     * @param card The card to return to the deck
+     */
+    public void returnCard(Card card) {
+        if (card != null) {
+            cards.add(card);
+        }
+    }
+    
+    /**
      * Gets the cards remaining in the deck.
      * Returns a defensive copy to maintain encapsulation.
      * 

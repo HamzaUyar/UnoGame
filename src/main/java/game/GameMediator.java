@@ -1,7 +1,10 @@
 package main.java.game;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import main.java.cards.Card;
@@ -51,16 +54,19 @@ public class GameMediator {
         deck.initializeDeck();
         deck.shuffle();
         
-        // 2. Deal cards to players (7 each)
+        // 2. Use Deck to determine dealer (highest card)
+        determineStartingPlayer();
+        
+        // 3. Deal cards to players (7 each)
         for (Player player : players) {
             List<Card> dealtCards = deck.dealCards(7);
             player.setHand(dealtCards);
         }
         
-        // 3. Initialize draw pile with remaining cards
+        // 4. Initialize draw pile with remaining cards
         drawPile.setCards(deck.getCards());
         
-        // 4. Set up first card in discard pile
+        // 5. Set up first card in discard pile
         Card startingCard = drawPile.drawCard();
         // If first card is a Wild Draw Four, put it back and draw another
         while (startingCard.getType().equals("Wild Draw Four")) {
@@ -70,24 +76,69 @@ public class GameMediator {
         }
         discardPile.addCard(startingCard);
         
-        // 5. Apply starting card effect if it's an action card
+        // 6. Apply starting card effect if it's an action card
         if (!startingCard.getType().matches("\\d+")) {
             applyCardEffect(startingCard);
         }
         
-        // 6. Select random player to start
-        Random random = new Random();
-        currentPlayer = players.get(random.nextInt(players.size()));
-        
         // 7. Print game setup
         System.out.println(ConsoleColors.formatSubHeader("GAME SETUP"));
-        System.out.println(ConsoleColors.WHITE_BOLD + "Starting player: " + ConsoleColors.YELLOW_BOLD + currentPlayer.getName() + ConsoleColors.RESET);
+        System.out.println(ConsoleColors.WHITE_BOLD + "Starting player/dealer: " + ConsoleColors.YELLOW_BOLD + currentPlayer.getName() + ConsoleColors.RESET);
         System.out.println(ConsoleColors.WHITE_BOLD + "Starting card: " + ConsoleColors.formatCard(startingCard.toString()) + ConsoleColors.RESET);
         
         System.out.println(ConsoleColors.formatSubHeader("PLAYER HANDS"));
         for (Player player : players) {
             printPlayerHand(player);
         }
+    }
+    
+    /**
+     * Determines the starting player by having each player draw a card.
+     * The player with the highest value card becomes the dealer/starting player.
+     */
+    private void determineStartingPlayer() {
+        // First make sure we have a deck ready
+        if (deck.isEmpty()) {
+            deck.initializeDeck();
+            deck.shuffle();
+        }
+        
+        System.out.println(ConsoleColors.formatSubHeader("DETERMINING STARTING PLAYER"));
+        System.out.println(ConsoleColors.WHITE + "Each player draws a card; highest card value starts the game." + ConsoleColors.RESET);
+        
+        // Create a map to store player -> card drawn
+        Map<Player, Card> drawnCards = new HashMap<>();
+        
+        // Each player draws a card
+        for (Player player : players) {
+            Card drawnCard = deck.dealCards(1).get(0);
+            drawnCards.put(player, drawnCard);
+            System.out.println(player.getName() + " draws " + ConsoleColors.formatCard(drawnCard.toString()));
+        }
+        
+        // Find the player with the highest card value
+        Player startingPlayer = drawnCards.entrySet().stream()
+                .max(Comparator.comparingInt(entry -> entry.getValue().getValue()))
+                .map(Map.Entry::getKey)
+                .orElse(players.get(0)); // Fallback to first player if there's a problem
+        
+        // Set the starting player
+        currentPlayer = startingPlayer;
+        
+        Card highestCard = drawnCards.get(startingPlayer);
+        System.out.println(ConsoleColors.highlight(startingPlayer.getName() + 
+            " has the highest card: " + ConsoleColors.formatCard(highestCard.toString()) + 
+            " and will start the game as dealer!"));
+        
+        // Return the drawn cards to the deck
+        List<Card> cardsToReturn = new ArrayList<>(drawnCards.values());
+        for (Card card : cardsToReturn) {
+            deck.returnCard(card);
+        }
+        
+        // Reshuffle the deck
+        deck.shuffle();
+        System.out.println(ConsoleColors.WHITE + "Cards returned to deck and reshuffled." + ConsoleColors.RESET);
     }
     
     /**
