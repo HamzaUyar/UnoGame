@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import main.java.cards.Card;
 import main.java.game.GameMediator;
+import main.java.utils.ConsoleColors;
 
 /**
  * Player class represents a player in the UNO game.
@@ -49,7 +50,7 @@ public class Player {
         }
         Card drawnCard = mediator.requestDraw();
         hand.add(drawnCard);
-        System.out.println(name + " drew " + drawnCard);
+        System.out.println(ConsoleColors.WHITE + name + " drew " + ConsoleColors.formatCard(drawnCard.toString()) + ConsoleColors.RESET);
     }
 
     /**

@@ -8,9 +8,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import main.java.players.Player;
 
@@ -96,11 +98,42 @@ public class ScoreTracker {
         int currentScore = scores.getOrDefault(winner, 0);
         scores.put(winner, currentScore + roundScore);
         
-        System.out.println(winner.getName() + " scored " + roundScore + " points this round.");
-        System.out.println("Current scores:");
-        for (Player player : players) {
-            System.out.println(player.getName() + ": " + scores.getOrDefault(player, 0));
+        // Print score update
+        System.out.println(ConsoleColors.formatSubHeader("ROUND SCORE UPDATE"));
+        System.out.println(ConsoleColors.GREEN_BOLD + winner.getName() + " scored " + roundScore + " points this round!" + ConsoleColors.RESET);
+        
+        // Print scoreboard
+        System.out.println(ConsoleColors.formatSubHeader("CURRENT SCOREBOARD"));
+        printScoreboard(players);
+    }
+    
+    /**
+     * Prints a formatted scoreboard showing all players' scores
+     * 
+     * @param players The list of players in the game
+     */
+    private void printScoreboard(List<Player> players) {
+        // Sort players by score in descending order
+        List<Player> sortedPlayers = players.stream()
+                .sorted(Comparator.comparing((Player p) -> scores.getOrDefault(p, 0)).reversed())
+                .collect(Collectors.toList());
+        
+        // Print scores in table format
+        System.out.println(ConsoleColors.CYAN + "┌─────────────┬────────┐");
+        System.out.println("│ Player      │ Score  │");
+        System.out.println("├─────────────┼────────┤");
+        
+        for (Player player : sortedPlayers) {
+            int score = scores.getOrDefault(player, 0);
+            String scoreColor = (player == sortedPlayers.get(0)) ? ConsoleColors.YELLOW_BOLD : ConsoleColors.WHITE;
+            System.out.printf("│ %-11s │ %s%6d%s │\n", 
+                    player.getName(), 
+                    scoreColor,
+                    score, 
+                    ConsoleColors.CYAN);
         }
+        
+        System.out.println("└─────────────┴────────┘" + ConsoleColors.RESET);
     }
     
     /**
@@ -120,8 +153,10 @@ public class ScoreTracker {
             
             writer.write(line.toString());
             writer.newLine();
+            
+            System.out.println(ConsoleColors.WHITE + "Scores saved to " + csvPath + ConsoleColors.RESET);
         } catch (IOException e) {
-            System.err.println("Error writing to scores file: " + e.getMessage());
+            System.err.println(ConsoleColors.RED + "Error writing to scores file: " + e.getMessage() + ConsoleColors.RESET);
         }
     }
     
