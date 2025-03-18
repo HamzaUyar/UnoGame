@@ -140,7 +140,7 @@ public class GameMediator {
     /**
      * Shuffles the deck.
      */
-    public void shuffleDeck() {
+    private void shuffleDeck() {
         deck.shuffle();
         System.out.println(ConsoleColors.WHITE + "Dealer shuffles the deck." + ConsoleColors.RESET);
     }
@@ -150,7 +150,7 @@ public class GameMediator {
      * The dealer draws one card from the deck, gives it to the next player,
      * and does this until each player (including the dealer) has 7 cards.
      */
-    public void dealCards() {
+    private void dealCards() {
         if (players == null || players.isEmpty()) {
             throw new IllegalArgumentException("Cannot deal cards to empty player list");
         }
@@ -207,7 +207,7 @@ public class GameMediator {
      * 
      * @return The starting card placed on the discard pile
      */
-    public Card setupPiles() {
+    private Card setupPiles() {
         // Initialize draw pile with remaining cards
         drawPile.setCards(deck.getCards());
         
@@ -338,7 +338,7 @@ public class GameMediator {
      * Replenishes the draw pile from the discard pile when it runs out of cards.
      * Keeps the top card of the discard pile and shuffles the rest.
      */
-    public void replenishDrawPile() {
+    private void replenishDrawPile() {
         if (gameState == GameState.IN_PROGRESS && discardPile.size() > 1) {
             System.out.println(ConsoleColors.CYAN_BOLD + "Draw pile empty! Reshuffling discard pile..." + ConsoleColors.RESET);
             
@@ -379,7 +379,7 @@ public class GameMediator {
         scoreTracker.logRoundToCSV(roundNumber);
         
         // Check if game over (someone reached 500 points)
-        if (scoreTracker.checkWinCondition()) {
+        if (isGameWon()) {
             this.gameState = GameState.GAME_OVER;
             
             // Find the winner
@@ -407,6 +407,16 @@ public class GameMediator {
             // Start new round
             startGame();
         }
+    }
+    
+    /**
+     * Checks if any player has won the game by reaching the winning score.
+     * 
+     * @return True if a player has reached the winning score, false otherwise
+     */
+    private boolean isGameWon() {
+        return players.stream()
+                .anyMatch(player -> scoreTracker.getScore(player) >= 500);
     }
     
     /**

@@ -32,12 +32,12 @@ class GameMediator {
   +GameMediator()
   +startGame(): void
   -determineStartingPlayer(): void
-  +shuffleDeck(): void
-  +dealCards(): void
-  +setupPiles(): Card
+  -shuffleDeck(): void
+  -dealCards(): void
+  -setupPiles(): Card
   +handleTurn(player: Player): void
   -applyCardEffect(card: Card): void
-  +replenishDrawPile(): void
+  -replenishDrawPile(): void
   +endRound(winner: Player): void
   +redistributeHands(): void
   -isPlayable(card: Card, topCard: Card): boolean
@@ -82,7 +82,7 @@ class ScoreTracker {
   +recordCardPlayed(): void
   +setRoundWinner(player: Player): void
   +getRoundDuration(): long
-  +checkWinCondition(): boolean
+  -checkWinCondition(): boolean
   +setMediator(mediator: GameMediator): void
   +logRoundToCSV(roundNumber: int): void
 }

@@ -272,7 +272,7 @@ public class ScoreTracker {
      * 
      * @return True if a player has won, false otherwise
      */
-    public boolean checkWinCondition() {
+    private boolean checkWinCondition() {
         return scores.values().stream().anyMatch(score -> score >= 500);
     }
 } 
