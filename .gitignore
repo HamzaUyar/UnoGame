@@ -46,3 +46,7 @@ dependency-reduced-pom.xml
 
 # Resources
 /resources/scores.csv
+
+# CSV files
+*.csv
+/csv/

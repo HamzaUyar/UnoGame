@@ -3,6 +3,7 @@ package main.java;
 import main.java.game.GameMediator;
 import main.java.players.Player;
 import main.java.utils.ConsoleColors;
+import main.java.utils.ConsoleLogger;
 
 /**
  * GameApp serves as the entry point for the UNO game application.
@@ -16,11 +17,17 @@ public class GameApp {
      * @param args Command line arguments (not used)
      */
     public static void main(String[] args) {
+        // Initialize console logging
+        ConsoleLogger.initialize();
+        
         System.out.println(ConsoleColors.CYAN_BOLD + "Starting UNO Game..." + ConsoleColors.RESET);
         System.out.println();
         
         GameApp app = new GameApp();
         app.runGame();
+        
+        // Stop console logging
+        ConsoleLogger.restore();
     }
     
     /**
