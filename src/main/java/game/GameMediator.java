@@ -5,9 +5,10 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import main.java.cards.Card;
+import main.java.cards.actioncards.WildCard;
 import main.java.players.Player;
 import main.java.utils.ConsoleColors;
 import main.java.utils.ScoreTracker;
@@ -27,7 +28,7 @@ public class GameMediator {
     private ScoreTracker scoreTracker;
     private GameState gameState;
     private int roundNumber = 1;
-    private Dealer dealer;
+    private int dealerIndex;
     
     /**
      * Creates a new GameMediator instance with initialized components.
@@ -40,7 +41,13 @@ public class GameMediator {
         this.discardPile = new DiscardPile();
         this.scoreTracker = new ScoreTracker();
         this.gameState = GameState.INITIALIZED;
-        this.dealer = new Dealer(deck, drawPile, discardPile);
+        this.dealerIndex = 0;
+        
+        // Set up mediator references
+        this.deck.setMediator(this);
+        this.drawPile.setMediator(this);
+        this.discardPile.setMediator(this);
+        this.scoreTracker.setMediator(this);
     }
     
     /**
@@ -58,18 +65,17 @@ public class GameMediator {
         // 1. Initialize deck
         deck.initializeDeck();
         
-        // 2. Use Deck to determine dealer (highest card)
+        // 2. Determine starting player (dealer)
         determineStartingPlayer();
         
-        // 3. Have dealer shuffle the deck
-        dealer.shuffleDeck();
+        // 3. Shuffle the deck
+        shuffleDeck();
         
-        // 4. Have dealer deal cards to players (7 each)
-        int dealerIndex = players.indexOf(currentPlayer);
-        dealer.dealCards(players, (dealerIndex + 1) % players.size()); // Start dealing to the left of the dealer
+        // 4. Deal cards to players (7 each)
+        dealCards();
         
-        // 5. Have dealer set up the draw and discard piles
-        Card startingCard = dealer.setupPiles();
+        // 5. Set up the draw and discard piles
+        Card startingCard = setupPiles();
         
         // 6. Apply starting card effect if it's an action card
         if (!startingCard.getType().matches("\\d+")) {
@@ -111,7 +117,12 @@ public class GameMediator {
         
         // Set the starting player and dealer
         currentPlayer = startingPlayer;
-        dealer.setDealerPlayer(startingPlayer);
+        dealerIndex = players.indexOf(startingPlayer);
+        
+        // Set dealer status for the starting player
+        for (Player player : players) {
+            player.setAsDealer(player == startingPlayer);
+        }
         
         Card highestCard = drawnCards.get(startingPlayer);
         System.out.println(ConsoleColors.highlight(startingPlayer.getName() + 
@@ -124,6 +135,99 @@ public class GameMediator {
             deck.returnCard(card);
         }
         System.out.println(ConsoleColors.WHITE + "Cards returned to deck for shuffling." + ConsoleColors.RESET);
+    }
+    
+    /**
+     * Shuffles the deck.
+     */
+    public void shuffleDeck() {
+        deck.shuffle();
+        System.out.println(ConsoleColors.WHITE + "Dealer shuffles the deck." + ConsoleColors.RESET);
+    }
+    
+    /**
+     * Deals 7 cards to each player in a left direction.
+     * The dealer draws one card from the deck, gives it to the next player,
+     * and does this until each player (including the dealer) has 7 cards.
+     */
+    public void dealCards() {
+        if (players == null || players.isEmpty()) {
+            throw new IllegalArgumentException("Cannot deal cards to empty player list");
+        }
+        
+        System.out.println(ConsoleColors.formatSubHeader("DEALING CARDS"));
+        System.out.println(ConsoleColors.WHITE + "Dealer (" + currentPlayer.getName() + ") deals 7 cards to each player." + ConsoleColors.RESET);
+        
+        // Clear any existing cards from players' hands
+        for (Player player : players) {
+            player.clearHand();
+        }
+        
+        // Start dealing to the player after the dealer
+        int startingPlayerIndex = (dealerIndex + 1) % players.size();
+        
+        // Deal 7 cards to each player, one at a time in a left direction
+        for (int cardNum = 0; cardNum < 7; cardNum++) {
+            System.out.println(ConsoleColors.CYAN + "\nDeal Round " + (cardNum + 1) + ":" + ConsoleColors.RESET);
+            
+            for (int i = 0; i < players.size(); i++) {
+                // Calculate the player index, starting from the player after the dealer
+                int playerIndex = (startingPlayerIndex + i) % players.size();
+                Player player = players.get(playerIndex);
+                
+                // Deal one card to this player
+                List<Card> dealtCard = deck.dealCards(1);
+                if (!dealtCard.isEmpty()) {
+                    Card card = dealtCard.get(0);
+                    player.addCardToHand(card);
+                    
+                    // Display the current hand for this player
+                    StringBuilder handStr = new StringBuilder();
+                    handStr.append(ConsoleColors.WHITE_BOLD).append(player.getName()).append(": ").append(ConsoleColors.RESET);
+                    
+                    List<Card> hand = player.getHand();
+                    for (int j = 0; j < hand.size(); j++) {
+                        handStr.append(ConsoleColors.formatCard(hand.get(j).toString()));
+                        if (j < hand.size() - 1) {
+                            handStr.append(" ");
+                        }
+                    }
+                    System.out.println(handStr.toString());
+                }
+            }
+        }
+        
+        System.out.println(ConsoleColors.GREEN + "\nAll players have been dealt 7 cards each." + ConsoleColors.RESET);
+    }
+    
+    /**
+     * Sets up the draw and discard piles after dealing.
+     * Places the remaining deck as the Draw Pile and starts the Discard Pile.
+     * If the top card drawn is an Action Card, its effect is followed immediately.
+     * 
+     * @return The starting card placed on the discard pile
+     */
+    public Card setupPiles() {
+        // Initialize draw pile with remaining cards
+        drawPile.setCards(deck.getCards());
+        
+        // Draw the first card for the discard pile
+        Card startingCard = drawPile.drawCard();
+        
+        // If first card is a Wild Draw Four, put it back and draw another
+        while (startingCard.getType().equals("Wild Draw Four")) {
+            System.out.println(ConsoleColors.WHITE + "First card was a Wild Draw Four. Returning to deck and drawing another." + ConsoleColors.RESET);
+            drawPile.addCard(startingCard);
+            drawPile.shuffle();
+            startingCard = drawPile.drawCard();
+        }
+        
+        // Place the starting card on the discard pile
+        discardPile.addCard(startingCard);
+        
+        System.out.println(ConsoleColors.WHITE_BOLD + "Starting card: " + ConsoleColors.formatCard(startingCard.toString()) + ConsoleColors.RESET);
+        
+        return startingCard;
     }
     
     /**
@@ -221,157 +325,205 @@ public class GameMediator {
             return;
         }
         
+        // Make sure the card has a mediator reference
+        card.setMediator(this);
+        
         System.out.println(ConsoleColors.formatSubHeader("APPLYING CARD EFFECT"));
         System.out.println(ConsoleColors.WHITE + "Applying effect of " + ConsoleColors.formatCard(card.toString()) + ConsoleColors.RESET);
         
-        // Apply effect based on card type
-        switch (card.getType()) {
-            case "Skip":
-                System.out.println(ConsoleColors.highlight("🚫 " + getNextPlayer().getName() + "'s turn is skipped! 🚫"));
-                currentPlayer = getNextPlayer(); // Skip the next player
-                break;
-                
-            case "Reverse":
-                isClockwise = !isClockwise;
-                System.out.println(ConsoleColors.highlight("↩️ Direction reversed! Now playing " + 
-                    (isClockwise ? "clockwise" : "counter-clockwise") + " ↩️"));
-                break;
-                
-            case "Draw Two":
-                Player nextPlayer = getNextPlayer();
-                System.out.println(ConsoleColors.highlight("➕ " + nextPlayer.getName() + " must draw 2 cards! ➕"));
-                for (int i = 0; i < 2; i++) {
-                    Card drawnCard = requestDraw();
-                    nextPlayer.addCardToHand(drawnCard);
-                    System.out.println(ConsoleColors.WHITE + nextPlayer.getName() + " draws " + 
-                        ConsoleColors.formatCard(drawnCard.toString()) + ConsoleColors.RESET);
-                }
-                System.out.println(ConsoleColors.WHITE + nextPlayer.getName() + " has " + 
-                    ConsoleColors.YELLOW_BOLD + nextPlayer.getHand().size() + 
-                    ConsoleColors.WHITE + " cards left" + ConsoleColors.RESET);
-                currentPlayer = getNextPlayer(); // Skip their turn
-                break;
-                
-            case "Wild":
-                // Handle Wild card special case for game start
-                if (gameState == GameState.IN_PROGRESS && discardPile.size() == 1) {
-                    // This is the starting card
-                    Player leftOfDealer = getPlayerLeftOfDealer();
-                    System.out.println(ConsoleColors.highlight("🌈 Starting card is Wild! " + 
-                        leftOfDealer.getName() + " (left of dealer) chooses the starting color! 🌈"));
-                    
-                    // Let player choose color (use the most frequent in their hand)
-                    card.applyEffect(this);
-                }
-                else {
-                    // Normal Wild card play during the game
-                    card.applyEffect(this);
-                }
-                break;
-                
-            case "Wild Draw Four":
-                // For Wild Draw Four, first apply its color change effect
-                card.applyEffect(this);
-                
-                // Then handle the draw and skip effects
-                nextPlayer = getNextPlayer();
-                for (int i = 0; i < 4; i++) {
-                    Card drawnCard = requestDraw();
-                    nextPlayer.addCardToHand(drawnCard);
-                    System.out.println(ConsoleColors.WHITE + nextPlayer.getName() + " draws " + 
-                        ConsoleColors.formatCard(drawnCard.toString()) + ConsoleColors.RESET);
-                }
-                System.out.println(ConsoleColors.WHITE + nextPlayer.getName() + " has " + 
-                    ConsoleColors.YELLOW_BOLD + nextPlayer.getHand().size() + 
-                    ConsoleColors.WHITE + " cards left" + ConsoleColors.RESET);
-                currentPlayer = getNextPlayer(); // Skip their turn
-                break;
-                
-            case "Shuffle Hands":
-                System.out.println(ConsoleColors.highlight("🔄 All hands will be shuffled and redistributed! 🔄"));
-                redistributeHands();
-                break;
-                
-            default:
-                System.out.println(ConsoleColors.RED + "Unknown card type: " + card.getType() + ConsoleColors.RESET);
-                break;
+        card.applyEffect();
+    }
+    
+    /**
+     * Replenishes the draw pile from the discard pile when it runs out of cards.
+     * Keeps the top card of the discard pile and shuffles the rest.
+     */
+    public void replenishDrawPile() {
+        if (gameState == GameState.IN_PROGRESS && discardPile.size() > 1) {
+            System.out.println(ConsoleColors.CYAN_BOLD + "Draw pile empty! Reshuffling discard pile..." + ConsoleColors.RESET);
+            
+            // Keep the top card
+            Card topCard = discardPile.getTopCard();
+            
+            // Get all other cards
+            List<Card> cards = discardPile.getCards();
+            
+            // Clear the discard pile
+            discardPile.clearCards();
+            
+            // Add back the top card
+            discardPile.addCard(topCard);
+            
+            // Add the rest to the draw pile
+            drawPile.setCards(cards);
+            
+            // Shuffle the draw pile
+            drawPile.shuffle();
+            
+            System.out.println(ConsoleColors.CYAN_BOLD + "Discard pile reshuffled and added to draw pile." + ConsoleColors.RESET);
         }
     }
     
     /**
-     * Ends the current round and updates scores.
+     * Ends the current round, calculates scores, and prepares for the next round.
      * 
      * @param winner The player who won the round
      */
-    private void endRound(Player winner) {
+    public void endRound(Player winner) {
         this.gameState = GameState.ROUND_OVER;
         
-        // Update scores using the existing method in ScoreTracker
+        // Update scores
         scoreTracker.updateScores(winner, players);
         
-        // Log round results to CSV
+        // Log the round to CSV
         scoreTracker.logRoundToCSV(roundNumber);
         
-        // Reset for next round or end game
-        roundNumber++;
-        
-        // Check if game should end
+        // Check if game over (someone reached 500 points)
         if (scoreTracker.checkWinCondition()) {
             this.gameState = GameState.GAME_OVER;
-            System.out.println(ConsoleColors.formatHeader(ConsoleColors.YELLOW_BOLD + "🏆 GAME OVER! " + 
-                winner.getName() + " has won the game with " + scoreTracker.getScore(winner) + " points! 🏆"));
+            
+            // Find the winner
+            Player gameWinner = players.stream()
+                    .max(Comparator.comparing(player -> scoreTracker.getScore(player)))
+                    .orElse(winner);
+            
+            System.out.println(ConsoleColors.formatHeader(ConsoleColors.YELLOW_BOLD + "🏆 " + 
+                    gameWinner.getName() + " WINS THE GAME WITH " + 
+                    scoreTracker.getScore(gameWinner) + " POINTS! 🏆" + ConsoleColors.RESET));
         } else {
             // Prepare for next round
-            System.out.println(ConsoleColors.highlight("Starting a new round..."));
+            roundNumber++;
+            System.out.println(ConsoleColors.CYAN_BOLD + "\nPreparing for round " + roundNumber + "...\n" + ConsoleColors.RESET);
+            
+            // Move dealer to the next player for the new round
+            dealerIndex = (dealerIndex + 1) % players.size();
+            currentPlayer = players.get(dealerIndex);
+            
+            // Update dealer status for all players
+            for (Player player : players) {
+                player.setAsDealer(player == currentPlayer);
+            }
+            
+            // Start new round
             startGame();
         }
     }
     
     /**
-     * Calculates the point value of a player's hand.
-     * 
-     * @param player The player whose hand to calculate
-     * @return The total point value of the hand
+     * Shuffles all players' hands together and redistributes them.
+     * Used by the Shuffle Hands card.
      */
-    private int calculateHandValue(Player player) {
-        int total = 0;
-        for (Card card : player.getHand()) {
-            total += card.getValue();
+    public void redistributeHands() {
+        // Gather all cards
+        List<Card> allCards = new ArrayList<>();
+        for (Player player : players) {
+            List<Card> hand = new ArrayList<>(player.getHand());
+            for (Card card : hand) {
+                player.playCard(card);
+                allCards.add(card);
+            }
         }
-        return total;
-    }
-    
-    /**
-     * Replenishes the draw pile with cards from the discard pile if needed.
-     */
-    private void replenishDrawPile() {
-        // If draw pile is empty, take all cards from discard pile except the top card
-        if (drawPile.isEmpty() && !discardPile.isEmpty() && discardPile.size() > 1) {
-            System.out.println(ConsoleColors.WHITE + "Draw pile is empty. Shuffling discard pile to create new draw pile." + ConsoleColors.RESET);
-            
-            // Get all cards except the top card from discard pile
-            List<Card> discardedCards = new ArrayList<>(discardPile.getCards());
-            
-            // Shuffle the cards and put them in the draw pile
-            java.util.Collections.shuffle(discardedCards);
-            for (Card card : discardedCards) {
-                drawPile.addCard(card);
+        
+        // Shuffle all cards
+        ThreadLocalRandom.current().nextInt(); // Warm up the RNG
+        for (int i = allCards.size() - 1; i > 0; i--) {
+            int index = ThreadLocalRandom.current().nextInt(i + 1);
+            // Swap
+            Card temp = allCards.get(index);
+            allCards.set(index, allCards.get(i));
+            allCards.set(i, temp);
+        }
+        
+        // Redistribute cards evenly
+        int cardsPerPlayer = allCards.size() / players.size();
+        int remainder = allCards.size() % players.size();
+        
+        int cardIndex = 0;
+        for (Player player : players) {
+            // Calculate cards for this player
+            int playerCards = cardsPerPlayer;
+            if (remainder > 0) {
+                playerCards++;
+                remainder--;
             }
             
-            // Remove all cards except the top card from discard pile
-            Card topCard = discardPile.getTopCard();
-            discardPile.clearCards();
-            discardPile.addCard(topCard);
+            // Give cards to the player
+            for (int i = 0; i < playerCards && cardIndex < allCards.size(); i++) {
+                Card card = allCards.get(cardIndex++);
+                player.addCardToHand(card);
+            }
+            
+            System.out.println(player.getName() + " now has " + player.getHand().size() + " cards");
         }
     }
     
     /**
-     * Switches the direction of play.
+     * Determines if a card is playable on the current top card.
+     * 
+     * @param card The card to check
+     * @param topCard The top card on the discard pile
+     * @return True if the card is playable, false otherwise
      */
-    public void switchDirection() {
-        isClockwise = !isClockwise;
-        System.out.println(ConsoleColors.CYAN_BOLD + "⟲ Direction switched! Now playing " + 
-            (isClockwise ? "clockwise" : "counter-clockwise") + " ⟳" + ConsoleColors.RESET);
+    private boolean isPlayable(Card card, Card topCard) {
+        return card.getColor().equals(topCard.getColor()) || 
+               card.getType().equals(topCard.getType()) ||
+               card.getType().equals("Wild") ||
+               card.getType().equals("Wild Draw Four");
+    }
+    
+    /**
+     * Validates whether a Wild Draw Four play is legal according to official UNO rules.
+     * Legal if the player has no cards matching the color on top (Wild Draw Four is a last resort).
+     * 
+     * @param player The player who played the Wild Draw Four
+     * @return True if the play is valid, false otherwise
+     */
+    public boolean validateWildDrawFour(Player player) {
+        Card topCard = discardPile.getTopCard();
+        String topColor = topCard.getColor();
+        
+        // Cannot validate if the top card is wild (no color)
+        if (topColor.isEmpty()) {
+            return true;
+        }
+        
+        // Check if player has any cards matching the top color
+        for (Card card : player.getHand()) {
+            if (card.getColor().equals(topColor)) {
+                return false; // Found a matching color, Wild Draw Four not allowed
+            }
+        }
+        
+        return true; // No matching colors, Wild Draw Four is allowed
+    }
+    
+    /**
+     * Creates and adds a specified number of players to the game.
+     * 
+     * @param numPlayers The number of players to create and add
+     */
+    public void createPlayers(int numPlayers) {
+        if (this.gameState != GameState.INITIALIZED) {
+            throw new IllegalStateException("Cannot add players after game has started");
+        }
+        
+        for (int i = 1; i <= numPlayers; i++) {
+            Player player = new Player("Player" + i);
+            addPlayer(player);
+        }
+    }
+    
+    /**
+     * Adds a player to the game.
+     * 
+     * @param player The player to add
+     */
+    public void addPlayer(Player player) {
+        if (this.gameState != GameState.INITIALIZED) {
+            throw new IllegalStateException("Cannot add players after game has started");
+        }
+        players.add(player);
+        player.setMediator(this);
     }
     
     /**
@@ -393,40 +545,43 @@ public class GameMediator {
     }
     
     /**
-     * Adds a player to the game.
-     * 
-     * @param player The player to add
+     * Switches the direction of play.
      */
-    public void addPlayer(Player player) {
-        if (this.gameState != GameState.INITIALIZED) {
-            throw new IllegalStateException("Cannot add players after game has started");
-        }
-        players.add(player);
-        player.setMediator(this);
+    public void switchDirection() {
+        isClockwise = !isClockwise;
     }
     
     /**
-     * Checks if a card is playable on the current top card.
-     * 
-     * @param card The card to check
-     * @param topCard The top card on the discard pile
-     * @return True if the card is playable, false otherwise
-     */
-    private boolean isPlayable(Card card, Card topCard) {
-        return card.getColor().equals(topCard.getColor()) || 
-               card.getType().equals(topCard.getType()) ||
-               card.getType().equals("Wild") ||
-               card.getType().equals("Wild Draw Four");
-    }
-    
-    /**
-     * Draws a card from the draw pile, replenishing if necessary.
+     * Allows a player to draw a card.
      * 
      * @return The drawn card
      */
     public Card requestDraw() {
-        replenishDrawPile();
-        return drawPile.drawCard();
+        Card drawnCard = drawPile.drawCard();
+        
+        // If draw pile is empty, replenish it from the discard pile
+        if (drawnCard == null) {
+            replenishDrawPile();
+            drawnCard = drawPile.drawCard();
+            
+            // If still null after replenishing, create a new Wild card as fallback
+            if (drawnCard == null) {
+                System.out.println(ConsoleColors.RED_BOLD + "Warning: No cards left in deck or discard pile! Creating a fallback Wild card." + ConsoleColors.RESET);
+                drawnCard = new WildCard();
+                drawnCard.setMediator(this);
+            }
+        }
+        
+        return drawnCard;
+    }
+    
+    /**
+     * Gets all players in the game.
+     * 
+     * @return The list of players
+     */
+    public List<Player> getPlayers() {
+        return new ArrayList<>(players);
     }
     
     /**
@@ -448,110 +603,11 @@ public class GameMediator {
     }
     
     /**
-     * Checks whether the direction of play is clockwise.
-     * 
-     * @return True if clockwise, false otherwise
-     */
-    public boolean isClockwise() {
-        return isClockwise;
-    }
-    
-    /**
-     * Gets the list of players.
-     * 
-     * @return The list of players
-     */
-    public List<Player> getPlayers() {
-        return new ArrayList<>(players); // Return a defensive copy
-    }
-    
-    /**
-     * Validates a Wild Draw Four play.
-     * According to rules, player must not have any cards matching the color on top.
-     * 
-     * @param player The player to validate
-     * @return True if the play is valid, false otherwise
-     */
-    public boolean validateWildDrawFour(Player player) {
-        Card topCard = discardPile.getTopCard();
-        
-        // If there's no top card yet, it's valid
-        if (topCard == null) {
-            return true;
-        }
-        
-        // Get the color of the top card
-        String topColor = topCard.getColor();
-        
-        // Wild Draw Four is valid if player has no cards matching the top card's color
-        boolean hasCardOfMatchingColor = player.getHand().stream()
-            .anyMatch(card -> card.getColor().equals(topColor));
-            
-        return !hasCardOfMatchingColor;
-    }
-    
-    /**
-     * Redistributes all cards among players after shuffling.
-     * Used by the Shuffle Hands card.
-     */
-    public void redistributeHands() {
-        List<Card> allCards = new ArrayList<>();
-        for (Player player : players) {
-            allCards.addAll(player.getHand());
-            player.clearHand();
-        }
-        
-        java.util.Collections.shuffle(allCards);
-        
-        int cardsPerPlayer = allCards.size() / players.size();
-        int remainingCards = allCards.size() % players.size();
-        
-        int cardIndex = 0;
-        for (Player player : players) {
-            int cardsForThisPlayer = cardsPerPlayer;
-            if (remainingCards > 0) {
-                cardsForThisPlayer++;
-                remainingCards--;
-            }
-            
-            for (int i = 0; i < cardsForThisPlayer; i++) {
-                player.addCardToHand(allCards.get(cardIndex++));
-            }
-        }
-        
-        System.out.println(ConsoleColors.PURPLE_BOLD + "🔄 All hands have been shuffled and redistributed! 🔄" + ConsoleColors.RESET);
-        System.out.println(ConsoleColors.formatSubHeader("NEW PLAYER HANDS"));
-        for (Player player : players) {
-            printPlayerHand(player);
-        }
-    }
-    
-    /**
-     * Gets the player to the left of the dealer.
-     * 
-     * @return The player to the left of the dealer
-     */
-    private Player getPlayerLeftOfDealer() {
-        int dealerIndex = players.indexOf(dealer.getDealerPlayer());
-        return players.get((dealerIndex + 1) % players.size());
-    }
-    
-    /**
-     * Checks if the game is over (a player has reached 500 points).
+     * Checks if the game is over.
      * 
      * @return True if the game is over, false otherwise
      */
     public boolean isGameOver() {
         return this.gameState == GameState.GAME_OVER;
-    }
-    
-    /**
-     * Enum representing the possible states of the game.
-     */
-    private enum GameState {
-        INITIALIZED,
-        IN_PROGRESS,
-        ROUND_OVER,
-        GAME_OVER
     }
 } 

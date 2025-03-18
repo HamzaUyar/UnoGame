@@ -27,11 +27,13 @@ public class WildDrawFourCard extends WildCard {
      * Applies the Wild Draw Four card effect by changing the color and setting up
      * the next player to draw 4 cards and lose their turn.
      * First validates that the play is legal according to official UNO rules.
-     * 
-     * @param mediator The game mediator to apply effects to
      */
     @Override
-    public void applyEffect(GameMediator mediator) {
+    public void applyEffect() {
+        if (mediator == null) {
+            throw new IllegalStateException("Card not connected to a game mediator");
+        }
+        
         Player currentPlayer = mediator.getCurrentPlayer();
         
         // Validate play (current player has no cards matching the color on top)

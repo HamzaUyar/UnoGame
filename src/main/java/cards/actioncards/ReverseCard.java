@@ -20,11 +20,12 @@ public class ReverseCard extends ActionCard {
 
     /**
      * Applies the Reverse card effect by switching the direction of play.
-     * 
-     * @param mediator The game mediator to apply effects to
      */
     @Override
-    public void applyEffect(GameMediator mediator) {
+    public void applyEffect() {
+        if (mediator == null) {
+            throw new IllegalStateException("Card not connected to a game mediator");
+        }
         mediator.switchDirection();
         System.out.println(ConsoleColors.CYAN_BOLD + "↩️ Direction of play has been reversed! ↩️" + ConsoleColors.RESET);
     }

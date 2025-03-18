@@ -11,6 +11,7 @@ public abstract class Card {
     protected String color;
     protected String type;
     protected int value;
+    protected GameMediator mediator;
 
     /**
      * Constructs a new card with the given color, type, and value.
@@ -29,10 +30,18 @@ public abstract class Card {
      * Applies the effect of this card.
      * This is a template method that must be implemented by subclasses.
      * Implements polymorphism through different implementations in subclasses.
-     *
-     * @param mediator The game mediator to apply effects to
      */
-    public abstract void applyEffect(GameMediator mediator);
+    public abstract void applyEffect();
+
+    /**
+     * Sets the game mediator for this card.
+     * This allows the card to interact with the game state when its effect is applied.
+     *
+     * @param mediator The game mediator
+     */
+    public void setMediator(GameMediator mediator) {
+        this.mediator = mediator;
+    }
 
     /**
      * Gets the color of this card.

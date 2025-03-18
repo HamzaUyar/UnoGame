@@ -26,11 +26,13 @@ public class WildCard extends ActionCard {
     /**
      * Applies the Wild card effect by selecting a new color based on the current player's hand.
      * The color is selected to maximize the player's advantage (most common color in hand).
-     * 
-     * @param mediator The game mediator to apply effects to
      */
     @Override
-    public void applyEffect(GameMediator mediator) {
+    public void applyEffect() {
+        if (mediator == null) {
+            throw new IllegalStateException("Card not connected to a game mediator");
+        }
+        
         Player currentPlayer = mediator.getCurrentPlayer();
         String chosenColor = selectColorBasedOnPlayerHand(currentPlayer);
         

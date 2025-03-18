@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import main.java.game.GameMediator;
 import main.java.players.Player;
 
 /**
@@ -27,6 +28,7 @@ public class ScoreTracker {
     private int cardsPlayedInRound;
     private long roundStartTime;
     private String roundWinner;
+    private GameMediator mediator;
     
     /**
      * Constructs a new ScoreTracker with the default CSV file path.
@@ -47,6 +49,15 @@ public class ScoreTracker {
         this.csvPath = csvPath;
         
         initializeCSVFile();
+    }
+    
+    /**
+     * Sets the game mediator for this score tracker.
+     *
+     * @param mediator The game mediator
+     */
+    public void setMediator(GameMediator mediator) {
+        this.mediator = mediator;
     }
     
     /**
@@ -112,9 +123,7 @@ public class ScoreTracker {
         int roundScore = 0;
         for (Player player : players) {
             if (player != winner) {
-                roundScore += player.getHand().stream()
-                        .mapToInt(card -> card.getValue())
-                        .sum();
+                roundScore += player.calculateHandValue();
             }
         }
         
@@ -249,19 +258,19 @@ public class ScoreTracker {
     }
     
     /**
-     * Gets a map of all player scores.
-     * Returns an unmodifiable view to maintain encapsulation.
+     * Gets all player scores.
+     * Returns an unmodifiable view of the scores map.
      * 
      * @return An unmodifiable view of the scores map
      */
     public Map<Player, Integer> getScores() {
-        return Collections.unmodifiableMap(scores);
+        return Map.copyOf(scores);
     }
     
     /**
-     * Checks if any player has reached the win condition score threshold.
+     * Checks if any player has reached the winning score (500 points).
      * 
-     * @return True if any player has 500 or more points, false otherwise
+     * @return True if a player has won, false otherwise
      */
     public boolean checkWinCondition() {
         return scores.values().stream().anyMatch(score -> score >= 500);

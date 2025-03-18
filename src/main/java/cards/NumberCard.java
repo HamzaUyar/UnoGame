@@ -23,11 +23,9 @@ public class NumberCard extends Card {
     /**
      * Number cards have no special effect when played.
      * This is a concrete implementation of the abstract method from Card.
-     * 
-     * @param mediator The game mediator (not used for number cards)
      */
     @Override
-    public void applyEffect(GameMediator mediator) {
+    public void applyEffect() {
         // Number cards have no special effect
     }
 } 

@@ -12,12 +12,22 @@ import main.java.cards.Card;
  */
 public class DrawPile {
     private List<Card> cards;
+    private GameMediator mediator;
     
     /**
      * Constructs a new, empty draw pile.
      */
     public DrawPile() {
         this.cards = new ArrayList<>();
+    }
+    
+    /**
+     * Sets the game mediator for this draw pile.
+     *
+     * @param mediator The game mediator
+     */
+    public void setMediator(GameMediator mediator) {
+        this.mediator = mediator;
     }
     
     /**

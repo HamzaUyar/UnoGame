@@ -22,11 +22,13 @@ public class SkipCard extends ActionCard {
     /**
      * Applies the Skip card effect by setting the current player to the player after the next player,
      * effectively skipping one player's turn.
-     * 
-     * @param mediator The game mediator to apply effects to
      */
     @Override
-    public void applyEffect(GameMediator mediator) {
+    public void applyEffect() {
+        if (mediator == null) {
+            throw new IllegalStateException("Card not connected to a game mediator");
+        }
+        
         Player skippedPlayer = mediator.getNextPlayer();
         mediator.setCurrentPlayer(mediator.getNextPlayer());
         System.out.println(ConsoleColors.YELLOW_BOLD + "🚫 " + skippedPlayer.getName() + "'s turn has been skipped! 🚫" + ConsoleColors.RESET);

@@ -24,9 +24,7 @@ public abstract class ActionCard extends Card {
     /**
      * Each ActionCard must implement this method to apply its specific effect to the game.
      * This achieves polymorphism through different implementations in subclasses.
-     * 
-     * @param mediator The game mediator to apply effects to
      */
     @Override
-    public abstract void applyEffect(GameMediator mediator);
+    public abstract void applyEffect();
 } 

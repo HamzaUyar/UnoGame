@@ -12,12 +12,22 @@ import main.java.cards.Card;
  */
 public class DiscardPile {
     private List<Card> cards;
+    private GameMediator mediator;
     
     /**
      * Constructs a new, empty discard pile.
      */
     public DiscardPile() {
         this.cards = new ArrayList<>();
+    }
+    
+    /**
+     * Sets the game mediator for this discard pile.
+     *
+     * @param mediator The game mediator
+     */
+    public void setMediator(GameMediator mediator) {
+        this.mediator = mediator;
     }
     
     /**

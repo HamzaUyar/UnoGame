@@ -7,9 +7,17 @@ import main.java.utils.ConsoleLogger;
 
 /**
  * GameApp serves as the entry point for the UNO game application.
- * It follows the Facade pattern by providing a simplified interface to the complex game system.
+ * It handles the game lifecycle and UI interactions.
  */
 public class GameApp {
+    private GameMediator mediator;
+    
+    /**
+     * Constructs a new GameApp with initialized components.
+     */
+    public GameApp() {
+        this.mediator = new GameMediator();
+    }
     
     /**
      * The main method that initializes and runs the UNO game.
@@ -20,27 +28,22 @@ public class GameApp {
         // Initialize console logging
         ConsoleLogger.initialize();
         
-        System.out.println(ConsoleColors.CYAN_BOLD + "Starting UNO Game..." + ConsoleColors.RESET);
-        System.out.println();
-        
+        // Create and start the game
         GameApp app = new GameApp();
-        app.runGame();
+        app.startGame();
         
         // Stop console logging
         ConsoleLogger.restore();
     }
     
     /**
-     * Initializes and runs a demo UNO game with 4 players.
+     * Starts the game by setting up and running game rounds until completion.
      */
-    public void runGame() {
-        printWelcomeMessage();
+    public void startGame() {
+        displayWelcomeMessage();
         
-        // Create game mediator
-        GameMediator mediator = createGameMediator();
-        
-        // Add players
-        addPlayers(mediator, 4);
+        // Create players
+        mediator.createPlayers(4);
         
         // Start the game
         mediator.startGame();
@@ -48,16 +51,19 @@ public class GameApp {
         // Run the game until someone wins (reaches 500 points)
         boolean gameOver = false;
         while (!gameOver) {
-            gameOver = runGameRound(mediator);
+            gameOver = runGameRound();
         }
         
-        printGameCompletionMessage();
+        displayGameCompletionMessage();
     }
     
     /**
-     * Prints a welcome message and game rules to the console.
+     * Displays the welcome message and game rules to the console.
      */
-    private void printWelcomeMessage() {
+    private void displayWelcomeMessage() {
+        System.out.println(ConsoleColors.CYAN_BOLD + "Starting UNO Game..." + ConsoleColors.RESET);
+        System.out.println();
+        
         System.out.println(ConsoleColors.formatHeader(ConsoleColors.RED_BOLD + "U" + 
                                                       ConsoleColors.GREEN_BOLD + "N" + 
                                                       ConsoleColors.BLUE_BOLD + "O" + 
@@ -74,42 +80,19 @@ public class GameApp {
     }
     
     /**
-     * Prints a game completion message.
+     * Displays a game completion message.
      */
-    private void printGameCompletionMessage() {
+    private void displayGameCompletionMessage() {
         System.out.println(ConsoleColors.formatHeader("GAME DEMO COMPLETED"));
         System.out.println(ConsoleColors.YELLOW_BOLD + "Thanks for playing UNO!" + ConsoleColors.RESET);
     }
     
     /**
-     * Creates and initializes a GameMediator instance.
-     * 
-     * @return The initialized GameMediator
-     */
-    private GameMediator createGameMediator() {
-        return new GameMediator();
-    }
-    
-    /**
-     * Adds a specified number of players to the game.
-     * 
-     * @param mediator The game mediator
-     * @param numPlayers The number of players to add
-     */
-    private void addPlayers(GameMediator mediator, int numPlayers) {
-        for (int i = 1; i <= numPlayers; i++) {
-            Player player = new Player("Player" + i);
-            mediator.addPlayer(player);
-        }
-    }
-    
-    /**
      * Runs a single round of the game until someone wins the round.
      * 
-     * @param mediator The game mediator
      * @return True if the game is over (someone reached 500 points), false if just the round ended
      */
-    private boolean runGameRound(GameMediator mediator) {
+    private boolean runGameRound() {
         boolean roundEnded = false;
         boolean gameOver = false;
         

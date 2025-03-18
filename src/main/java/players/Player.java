@@ -20,6 +20,7 @@ public class Player {
     private final String name;
     private List<Card> hand;
     private GameMediator mediator;
+    private boolean isDealer;
 
     /**
      * Constructs a new Player with the given name.
@@ -29,6 +30,7 @@ public class Player {
     public Player(String name) {
         this.name = name;
         this.hand = new ArrayList<>();
+        this.isDealer = false;
     }
 
     /**
@@ -189,5 +191,23 @@ public class Player {
             total += card.getValue();
         }
         return total;
+    }
+    
+    /**
+     * Sets this player as the dealer or removes dealer status.
+     * 
+     * @param isDealer True to set as dealer, false to remove dealer status
+     */
+    public void setAsDealer(boolean isDealer) {
+        this.isDealer = isDealer;
+    }
+    
+    /**
+     * Checks if this player is the dealer.
+     * 
+     * @return True if this player is the dealer, false otherwise
+     */
+    public boolean isDealer() {
+        return isDealer;
     }
 } 
