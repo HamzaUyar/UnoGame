@@ -6,13 +6,25 @@ import java.util.List;
 
 import main.java.cards.Card;
 
+/**
+ * DrawPile represents the pile of cards that players draw from during the game.
+ * It encapsulates the management of cards available for drawing.
+ */
 public class DrawPile {
     private List<Card> cards;
     
+    /**
+     * Constructs a new, empty draw pile.
+     */
     public DrawPile() {
-        cards = new ArrayList<>();
+        this.cards = new ArrayList<>();
     }
     
+    /**
+     * Draws a card from the top of the pile.
+     * 
+     * @return The drawn card, or null if the pile is empty
+     */
     public Card drawCard() {
         if (cards.isEmpty()) {
             return null;
@@ -20,22 +32,55 @@ public class DrawPile {
         return cards.remove(0);
     }
     
+    /**
+     * Adds a card to the bottom of the draw pile.
+     * 
+     * @param card The card to add
+     * @throws IllegalArgumentException if the card is null
+     */
     public void addCard(Card card) {
+        if (card == null) {
+            throw new IllegalArgumentException("Cannot add null card to draw pile");
+        }
         cards.add(card);
     }
     
+    /**
+     * Sets the cards in the draw pile to the provided list.
+     * Makes a defensive copy to maintain encapsulation.
+     * 
+     * @param cards The new list of cards
+     * @throws IllegalArgumentException if the cards list is null
+     */
     public void setCards(List<Card> cards) {
+        if (cards == null) {
+            throw new IllegalArgumentException("Cards list cannot be null");
+        }
         this.cards = new ArrayList<>(cards);
     }
     
+    /**
+     * Gets the list of cards in the draw pile.
+     * Returns a defensive copy to maintain encapsulation.
+     * 
+     * @return A copy of the cards list
+     */
     public List<Card> getCards() {
-        return cards;
+        return new ArrayList<>(cards);
     }
     
+    /**
+     * Checks if the draw pile is empty.
+     * 
+     * @return True if the pile is empty, false otherwise
+     */
     public boolean isEmpty() {
         return cards.isEmpty();
     }
     
+    /**
+     * Shuffles the cards in the draw pile.
+     */
     public void shuffle() {
         Collections.shuffle(cards);
     }

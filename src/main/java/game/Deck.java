@@ -8,19 +8,29 @@ import main.java.cards.Card;
 import main.java.cards.NumberCard;
 import main.java.cards.actioncards.*;
 
+/**
+ * Deck represents the initial set of cards in an UNO game.
+ * It is responsible for creating and managing all cards at the start of the game.
+ * Follows the Factory pattern for creating different types of cards.
+ */
 public class Deck {
     private List<Card> cards;
+    private static final String[] COLORS = {"Red", "Green", "Blue", "Yellow"};
     
+    /**
+     * Constructs a new, empty deck.
+     */
     public Deck() {
-        cards = new ArrayList<>();
+        this.cards = new ArrayList<>();
     }
     
+    /**
+     * Initializes the deck with all UNO cards according to standard UNO rules.
+     * Creates number cards, action cards, and wild cards.
+     */
     public void initializeDeck() {
-        // Create colors
-        String[] colors = {"Red", "Green", "Blue", "Yellow"};
-        
         // Add number cards (0-9) for each color
-        for (String color : colors) {
+        for (String color : COLORS) {
             // Add one 0 card for each color
             cards.add(new NumberCard(color, 0));
             
@@ -32,7 +42,7 @@ public class Deck {
         }
         
         // Add action cards for each color
-        for (String color : colors) {
+        for (String color : COLORS) {
             // Add two Skip cards for each color
             cards.add(new SkipCard(color));
             cards.add(new SkipCard(color));
@@ -56,14 +66,23 @@ public class Deck {
             cards.add(new WildDrawFourCard());
         }
         
-        // Add 1 Shuffle Hands card
+        // Add 1 Shuffle Hands card (custom card)
         cards.add(new ShuffleHandsCard());
     }
     
+    /**
+     * Shuffles the cards in the deck.
+     */
     public void shuffle() {
         Collections.shuffle(cards);
     }
     
+    /**
+     * Deals a specified number of cards from the deck.
+     * 
+     * @param count The number of cards to deal
+     * @return A list containing the dealt cards
+     */
     public List<Card> dealCards(int count) {
         List<Card> dealtCards = new ArrayList<>();
         for (int i = 0; i < count && !cards.isEmpty(); i++) {
@@ -72,7 +91,31 @@ public class Deck {
         return dealtCards;
     }
     
+    /**
+     * Gets the cards remaining in the deck.
+     * Returns a defensive copy to maintain encapsulation.
+     * 
+     * @return A copy of the cards list
+     */
     public List<Card> getCards() {
-        return cards;
+        return new ArrayList<>(cards);
+    }
+    
+    /**
+     * Checks if the deck is empty.
+     * 
+     * @return True if the deck is empty, false otherwise
+     */
+    public boolean isEmpty() {
+        return cards.isEmpty();
+    }
+    
+    /**
+     * Gets the number of cards in the deck.
+     * 
+     * @return The number of cards
+     */
+    public int size() {
+        return cards.size();
     }
 } 

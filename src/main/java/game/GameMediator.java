@@ -8,6 +8,11 @@ import main.java.cards.Card;
 import main.java.players.Player;
 import main.java.utils.ScoreTracker;
 
+/**
+ * GameMediator class implements the Mediator design pattern to coordinate 
+ * interactions between game components without them having to refer to each other.
+ * It encapsulates the game state and rules.
+ */
 public class GameMediator {
     private List<Player> players;
     private Player currentPlayer;
@@ -16,17 +21,28 @@ public class GameMediator {
     private DrawPile drawPile;
     private DiscardPile discardPile;
     private ScoreTracker scoreTracker;
+    private GameState gameState;
     
+    /**
+     * Creates a new GameMediator instance with initialized components.
+     */
     public GameMediator() {
-        players = new ArrayList<>();
-        isClockwise = true;
-        deck = new Deck();
-        drawPile = new DrawPile();
-        discardPile = new DiscardPile();
-        scoreTracker = new ScoreTracker();
+        this.players = new ArrayList<>();
+        this.isClockwise = true;
+        this.deck = new Deck();
+        this.drawPile = new DrawPile();
+        this.discardPile = new DiscardPile();
+        this.scoreTracker = new ScoreTracker();
+        this.gameState = GameState.INITIALIZED;
     }
     
+    /**
+     * Starts a new game.
+     * Initializes the deck, deals cards to players, and sets up the discard pile.
+     */
     public void startGame() {
+        this.gameState = GameState.IN_PROGRESS;
+        
         // 1. Initialize deck
         deck.initializeDeck();
         deck.shuffle();
@@ -68,7 +84,17 @@ public class GameMediator {
         System.out.println("Starting card: " + startingCard);
     }
     
+    /**
+     * Handles a player's turn.
+     * Manages card play, drawing, effects, and checking for round end.
+     * 
+     * @param player The player whose turn it is
+     */
     public void handleTurn(Player player) {
+        if (this.gameState != GameState.IN_PROGRESS) {
+            throw new IllegalStateException("Cannot handle turn when game is not in progress");
+        }
+        
         System.out.println("\n" + player.getName() + "'s turn");
         
         // 1. Check if player has playable cards
@@ -107,10 +133,18 @@ public class GameMediator {
         currentPlayer = getNextPlayer();
     }
     
+    /**
+     * Applies the effect of the given card.
+     * 
+     * @param card The card whose effect to apply
+     */
     private void applyCardEffect(Card card) {
         card.applyEffect(this);
     }
     
+    /**
+     * Replenishes the draw pile if it's empty by shuffling the discard pile.
+     */
     private void replenishDrawPile() {
         if (drawPile.isEmpty()) {
             System.out.println("Draw pile is empty. Shuffling discard pile.");
@@ -122,24 +156,41 @@ public class GameMediator {
         }
     }
     
+    /**
+     * Ends the current round, updates scores, and checks for game end.
+     * 
+     * @param winner The player who won the round
+     */
     private void endRound(Player winner) {
+        this.gameState = GameState.ROUND_ENDED;
+        
         scoreTracker.updateScores(winner, players);
         scoreTracker.logRoundToCSV(1); // Replace with actual round number
         
         // Check if winner has 500 or more points
         if (scoreTracker.getScore(winner) >= 500) {
             System.out.println(winner.getName() + " has won the game with " + scoreTracker.getScore(winner) + " points!");
+            this.gameState = GameState.GAME_OVER;
         } else {
             System.out.println("Starting a new round...");
+            this.gameState = GameState.IN_PROGRESS;
             startGame();
         }
     }
     
+    /**
+     * Switches the direction of play.
+     */
     public void switchDirection() {
         isClockwise = !isClockwise;
         System.out.println("Direction switched! Now playing " + (isClockwise ? "clockwise" : "counter-clockwise"));
     }
     
+    /**
+     * Gets the next player in turn order.
+     * 
+     * @return The next player
+     */
     public Player getNextPlayer() {
         int currentIndex = players.indexOf(currentPlayer);
         int nextIndex;
@@ -153,45 +204,95 @@ public class GameMediator {
         return players.get(nextIndex);
     }
     
+    /**
+     * Adds a player to the game.
+     * 
+     * @param player The player to add
+     */
     public void addPlayer(Player player) {
+        if (this.gameState != GameState.INITIALIZED) {
+            throw new IllegalStateException("Cannot add players after game has started");
+        }
         players.add(player);
         player.setMediator(this);
     }
     
+    /**
+     * Checks if a card is playable on the current top card.
+     * 
+     * @param card The card to check
+     * @param topCard The top card on the discard pile
+     * @return True if the card is playable, false otherwise
+     */
     private boolean isPlayable(Card card, Card topCard) {
-        return  card.getColor().equals(topCard.getColor()) || 
-                card.getType().equals(topCard.getType()) ||
-                card.getType().equals("Wild") ||
-                card.getType().equals("Wild Draw Four");
+        return card.getColor().equals(topCard.getColor()) || 
+               card.getType().equals(topCard.getType()) ||
+               card.getType().equals("Wild") ||
+               card.getType().equals("Wild Draw Four");
     }
     
-    // Getters and setters
+    /**
+     * Draws a card from the draw pile, replenishing if necessary.
+     * 
+     * @return The drawn card
+     */
     public Card requestDraw() {
         replenishDrawPile();
         return drawPile.drawCard();
     }
     
+    /**
+     * Gets the current player.
+     * 
+     * @return The current player
+     */
     public Player getCurrentPlayer() {
         return currentPlayer;
     }
     
+    /**
+     * Sets the current player.
+     * 
+     * @param player The new current player
+     */
     public void setCurrentPlayer(Player player) {
         this.currentPlayer = player;
     }
     
+    /**
+     * Checks whether the direction of play is clockwise.
+     * 
+     * @return True if clockwise, false otherwise
+     */
     public boolean isClockwise() {
         return isClockwise;
     }
     
+    /**
+     * Gets the list of players.
+     * 
+     * @return The list of players
+     */
     public List<Player> getPlayers() {
-        return players;
+        return new ArrayList<>(players); // Return a defensive copy
     }
     
+    /**
+     * Validates a Wild Draw Four play.
+     * According to rules, player must not have any cards matching the color on top.
+     * 
+     * @param player The player to validate
+     * @return True if the play is valid, false otherwise
+     */
     public boolean validateWildDrawFour(Player player) {
         return player.getHand().stream()
             .noneMatch(card -> card.getColor().equals(discardPile.getTopCard().getColor()));
     }
     
+    /**
+     * Redistributes all cards among players after shuffling.
+     * Used by the Shuffle Hands card.
+     */
     public void redistributeHands() {
         List<Card> allCards = new ArrayList<>();
         for (Player player : players) {
@@ -221,5 +322,15 @@ public class GameMediator {
         for (Player player : players) {
             System.out.println(player.getName() + "'s new hand: " + player.getHand());
         }
+    }
+    
+    /**
+     * Enum representing the possible states of the game.
+     */
+    private enum GameState {
+        INITIALIZED,
+        IN_PROGRESS,
+        ROUND_ENDED,
+        GAME_OVER
     }
 } 
