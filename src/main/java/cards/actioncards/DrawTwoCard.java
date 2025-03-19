@@ -1,5 +1,6 @@
 package main.java.cards.actioncards;
 
+import main.java.game.IGameMediator;
 import main.java.players.Player;
 
 /**
@@ -16,6 +17,16 @@ public class DrawTwoCard extends ActionCard {
      */
     public DrawTwoCard(String color) {
         super(color, "Draw Two", 20);
+    }
+    
+    /**
+     * Constructs a new Draw Two card with the specified color, a value of 20 points, and a mediator.
+     * 
+     * @param color The color of the Draw Two card
+     * @param mediator The game mediator
+     */
+    public DrawTwoCard(String color, IGameMediator mediator) {
+        super(color, "Draw Two", 20, mediator);
     }
 
     /**

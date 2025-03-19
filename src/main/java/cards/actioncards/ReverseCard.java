@@ -1,5 +1,6 @@
 package main.java.cards.actioncards;
 
+import main.java.game.IGameMediator;
 import main.java.utils.ConsoleColors;
 
 /**
@@ -15,6 +16,16 @@ public class ReverseCard extends ActionCard {
      */
     public ReverseCard(String color) {
         super(color, "Reverse", 20);
+    }
+    
+    /**
+     * Constructs a new Reverse card with the specified color, a value of 20 points, and a mediator.
+     * 
+     * @param color The color of the Reverse card
+     * @param mediator The game mediator
+     */
+    public ReverseCard(String color, IGameMediator mediator) {
+        super(color, "Reverse", 20, mediator);
     }
 
     /**

@@ -1,5 +1,6 @@
 package main.java.cards.actioncards;
 
+import main.java.game.IGameMediator;
 import main.java.players.Player;
 import main.java.utils.ConsoleColors;
 
@@ -16,6 +17,16 @@ public class SkipCard extends ActionCard {
      */
     public SkipCard(String color) {
         super(color, "Skip", 20);
+    }
+    
+    /**
+     * Constructs a new Skip card with the specified color, a value of 20 points, and a mediator.
+     * 
+     * @param color The color of the Skip card
+     * @param mediator The game mediator
+     */
+    public SkipCard(String color, IGameMediator mediator) {
+        super(color, "Skip", 20, mediator);
     }
 
     /**

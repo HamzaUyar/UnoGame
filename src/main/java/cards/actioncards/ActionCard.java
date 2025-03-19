@@ -1,6 +1,7 @@
 package main.java.cards.actioncards;
 
 import main.java.cards.Card;
+import main.java.game.IGameMediator;
 /**
  * ActionCard is the abstract base class for all cards with special effects.
  * It extends Card and represents a higher level of abstraction for action cards.
@@ -10,6 +11,7 @@ public abstract class ActionCard extends Card {
     
     /**
      * Constructs a new ActionCard with the given color, type, and value.
+     * The mediator can be null initially and set later.
      * 
      * @param color The color of the card
      * @param type The type/name of the action card
@@ -17,6 +19,18 @@ public abstract class ActionCard extends Card {
      */
     public ActionCard(String color, String type, int value) {
         super(color, type, value);
+    }
+    
+    /**
+     * Constructs a new ActionCard with the given color, type, value, and mediator.
+     * 
+     * @param color The color of the card
+     * @param type The type/name of the action card
+     * @param value The point value of the card
+     * @param mediator The game mediator
+     */
+    public ActionCard(String color, String type, int value, IGameMediator mediator) {
+        super(color, type, value, mediator);
     }
     
     /**

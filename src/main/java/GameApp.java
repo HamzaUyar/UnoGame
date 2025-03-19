@@ -11,8 +11,10 @@ import main.java.utils.ConsoleLogger;
  * It handles the game lifecycle and UI interactions.
  */
 public class GameApp {
-    private IGameMediator mediator;
-    private GameUI ui;
+    private static final int DEFAULT_PLAYER_COUNT = 4;
+    
+    private final IGameMediator mediator;
+    private final GameUI ui;
     
     /**
      * Constructs a new GameApp with initialized components.
@@ -31,12 +33,14 @@ public class GameApp {
         // Initialize console logging
         ConsoleLogger.initialize();
         
-        // Create and start the game
-        GameApp app = new GameApp();
-        app.startGame();
-        
-        // Stop console logging
-        ConsoleLogger.restore();
+        try {
+            // Create and start the game
+            GameApp app = new GameApp();
+            app.startGame();
+        } finally {
+            // Ensure console logging is restored even if exceptions occur
+            ConsoleLogger.restore();
+        }
     }
     
     /**
@@ -46,18 +50,25 @@ public class GameApp {
         ui.displayWelcomeMessage();
         
         // Create players
-        mediator.createPlayers(4);
+        mediator.createPlayers(DEFAULT_PLAYER_COUNT);
         
         // Start the game
         mediator.startGame();
         
         // Run the game until someone wins (reaches 500 points)
+        runGameLoop();
+        
+        ui.displayGameCompletionMessage();
+    }
+    
+    /**
+     * Runs the main game loop until the game is over.
+     */
+    private void runGameLoop() {
         boolean gameOver = false;
         while (!gameOver) {
             gameOver = runGameRound();
         }
-        
-        ui.displayGameCompletionMessage();
     }
     
     /**
@@ -67,7 +78,6 @@ public class GameApp {
      */
     private boolean runGameRound() {
         boolean roundEnded = false;
-        boolean gameOver = false;
         
         while (!roundEnded) {
             Player currentPlayer = mediator.getCurrentPlayer();
@@ -79,11 +89,11 @@ public class GameApp {
                 
                 // Check if game is over (player reached 500 points)
                 if (mediator.isGameOver()) {
-                    gameOver = true;
+                    return true;
                 }
             }
         }
         
-        return gameOver;
+        return false;
     }
 } 

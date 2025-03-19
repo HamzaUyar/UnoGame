@@ -2,17 +2,16 @@ package main.java.game;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.HashMap;
 
 import main.java.cards.Card;
-import main.java.cards.actioncards.WildCard;
 import main.java.players.Player;
 import main.java.ui.GameUI;
 import main.java.utils.ConsoleColors;
-import main.java.utils.ScoreTracker;
+import main.java.utils.ScoreManager;
 
 /**
  * GameMediator class implements the Mediator design pattern to coordinate 
@@ -26,53 +25,28 @@ public class GameMediator implements IGameMediator {
     private Deck deck;
     private DrawPile drawPile;
     private DiscardPile discardPile;
-    private ScoreTracker scoreTracker;
+    private ScoreManager scoreManager;
     private GameState gameState;
     private int roundNumber = 1;
     private int dealerIndex;
     private GameUI ui;
-    private Map<GameComponentType, List<IGameComponent>> componentRegistry;
     
     /**
      * Creates a new GameMediator instance with initialized components.
+     * All components receive a reference to this mediator in their constructors.
      */
     public GameMediator() {
         this.players = new ArrayList<>();
         this.isClockwise = true;
-        this.deck = new Deck();
-        this.drawPile = new DrawPile();
-        this.discardPile = new DiscardPile();
-        this.scoreTracker = new ScoreTracker();
+        this.scoreManager = new ScoreManager();
         this.gameState = GameState.INITIALIZED;
         this.dealerIndex = 0;
         this.ui = new GameUI();
-        this.componentRegistry = new HashMap<>();
         
-        // Initialize component lists
-        for (GameComponentType type : GameComponentType.values()) {
-            componentRegistry.put(type, new ArrayList<>());
-        }
-        
-        // Set up mediator references instead of component registration for now
-        this.deck.setMediator(this);
-        
-        // TODO: Update these components to implement IGameComponent interface
-        // registerComponent(this.deck);
-        // registerComponent(this.drawPile);
-        // registerComponent(this.discardPile);
-        // registerComponent(this.scoreTracker);
-    }
-    
-    /**
-     * Registers a game component with the mediator.
-     * 
-     * @param component The component to register
-     */
-    @Override
-    public void registerComponent(IGameComponent component) {
-        GameComponentType type = component.getComponentType();
-        componentRegistry.get(type).add(component);
-        component.setMediator(this);
+        // Create components with mediator reference
+        this.deck = new Deck(this);
+        this.drawPile = new DrawPile(this);
+        this.discardPile = new DiscardPile(this);
     }
     
     /**
@@ -86,40 +60,43 @@ public class GameMediator implements IGameMediator {
         ui.displayRoundHeader(roundNumber);
         
         // Start tracking the new round
-        scoreTracker.startNewRound();
+        scoreManager.startNewRound();
         
+        setupGameRound();
+    }
+    
+    /**
+     * Sets up a game round with all necessary components and initial state.
+     */
+    private void setupGameRound() {
         // 1. Initialize deck
         deck.initializeDeck();
         
         // 2. Determine starting player (dealer)
         determineStartingPlayer();
         
-        // 3. Shuffle the deck
-        shuffleDeck();
-        
-        // 4. Deal cards to players (7 each)
+        // 3. Deal cards to players (7 each)
         dealCards();
         
-        // 5. Set up the draw and discard piles
+        // 4. Set up the draw and discard piles
         Card startingCard = setupPiles();
         
-        // 6. Apply starting card effect if it's an action card
+        // 5. Apply starting card effect if it's an action card
         if (!startingCard.getType().matches("\\d+")) {
             applyCardEffect(startingCard);
         }
         
-        // 7. Print game setup
+        // 6. Print game setup
         ui.displayGameSetupComplete(currentPlayer.getName());
     }
     
     /**
      * Determines the starting player by having each player draw a card.
      * The player with the highest value card becomes the dealer/starting player.
-     * This implementation ensures proper randomization.
      */
     private void determineStartingPlayer() {
-        // First make sure we have a deck ready and properly shuffled
-        deck.initializeDeck(); // This now includes shuffling
+        // Make sure we have a deck ready and properly shuffled
+        deck.initializeDeck();
         
         ui.displayDeterminingDealerHeader();
         
@@ -134,106 +111,59 @@ public class GameMediator implements IGameMediator {
         }
         
         // Find the player with the highest card value
-        Player startingPlayer = drawnCards.entrySet().stream()
-                .max(Comparator.comparingInt(entry -> entry.getValue().getValue()))
-                .map(Map.Entry::getKey)
-                .orElse(players.get(0)); // Fallback to first player if there's a problem
+        Player startingPlayer = findHighestCardPlayer(drawnCards);
         
         // Set the starting player and dealer
         currentPlayer = startingPlayer;
         dealerIndex = players.indexOf(startingPlayer);
         
         // Set dealer status for the starting player
-        for (Player player : players) {
-            player.setAsDealer(player == startingPlayer);
-        }
+        players.forEach(player -> player.setAsDealer(player == startingPlayer));
         
         Card highestCard = drawnCards.get(startingPlayer);
         ui.displayDealerSelected(startingPlayer.getName(), highestCard.toString());
-        
-        // Return the drawn cards to the deck
-        List<Card> cardsToReturn = new ArrayList<>(drawnCards.values());
-        for (Card card : cardsToReturn) {
-            deck.returnCard(card);
-        }
-        ui.displayCardsReturnedToDeck();
+    }
+    
+    private Player findHighestCardPlayer(Map<Player, Card> drawnCards) {
+        return drawnCards.entrySet().stream()
+                .max(Comparator.comparingInt(entry -> entry.getValue().getValue()))
+                .map(Map.Entry::getKey)
+                .orElse(players.get(0)); // Fallback to first player if there's a problem
     }
     
     /**
-     * Shuffles the deck.
-     */
-    private void shuffleDeck() {
-        deck.shuffle();
-        ui.displayDeckShuffled();
-    }
-    
-    /**
-     * Deals 7 cards to each player in a left direction.
-     * The dealer draws one card from the deck, gives it to the next player,
-     * and does this until each player (including the dealer) has 7 cards.
+     * Deals cards to all players at the start of a game.
+     * Each player receives 7 cards.
      */
     private void dealCards() {
-        if (players == null || players.isEmpty()) {
-            throw new IllegalArgumentException("Cannot deal cards to empty player list");
-        }
-        
         ui.displayDealingCardsHeader(currentPlayer.getName());
         
-        // Clear any existing cards from players' hands
-        for (Player player : players) {
-            player.clearHand();
-        }
-        
-        // Start dealing to the player after the dealer
-        int startingPlayerIndex = (dealerIndex + 1) % players.size();
-        
-        // Deal 7 cards to each player, one at a time in a left direction
-        for (int cardNum = 0; cardNum < 7; cardNum++) {
-            ui.displayDealRoundHeader(cardNum + 1);
-            
-            for (int i = 0; i < players.size(); i++) {
-                // Calculate the player index, starting from the player after the dealer
-                int playerIndex = (startingPlayerIndex + i) % players.size();
-                Player player = players.get(playerIndex);
-                
-                // Deal one card to this player
-                List<Card> dealtCard = deck.dealCards(1);
-                if (!dealtCard.isEmpty()) {
-                    Card card = dealtCard.get(0);
-                    player.addCardToHand(card);
-                    
-                    // Display the current hand for this player
-                    ui.displayPlayerHand(player.getName(), player.getHand());
-                }
+        // Deal 7 cards to each player
+        for (int i = 0; i < 7; i++) {
+            for (Player player : players) {
+                List<Card> cards = deck.dealCards(1);
+                player.addCardToHand(cards.get(0));
             }
         }
+        
+        // Print each player's hand
+        players.forEach(this::printPlayerHand);
         
         ui.displayAllPlayersDealt();
     }
     
     /**
-     * Sets up the draw and discard piles after dealing.
-     * Places the remaining deck as the Draw Pile and starts the Discard Pile.
-     * If the top card drawn is an Action Card, its effect is followed immediately.
+     * Sets up the draw and discard piles at the start of a game.
      * 
-     * @return The starting card placed on the discard pile
+     * @return The top card of the discard pile
      */
     private Card setupPiles() {
-        // Initialize draw pile with remaining cards
-        drawPile.setCards(deck.getCards());
+        // Move all remaining cards to the draw pile
+        List<Card> remainingCards = deck.getCards();
+        remainingCards.forEach(drawPile::addCard);
         
-        // Draw the first card for the discard pile
+        // Draw one card from the draw pile for the discard pile
         Card startingCard = drawPile.drawCard();
-        
-        // If first card is a Wild Draw Four, put it back and draw another
-        while (startingCard.getType().equals("Wild Draw Four")) {
-            System.out.println(ConsoleColors.WHITE + "First card was a Wild Draw Four. Returning to deck and drawing another." + ConsoleColors.RESET);
-            drawPile.addCard(startingCard);
-            drawPile.shuffle();
-            startingCard = drawPile.drawCard();
-        }
-        
-        // Place the starting card on the discard pile
         discardPile.addCard(startingCard);
         
         ui.displayStartingCard(startingCard.toString());
@@ -242,7 +172,9 @@ public class GameMediator implements IGameMediator {
     }
     
     /**
-     * Prints a player's hand in a nicely formatted way
+     * Prints a player's hand to the console.
+     * 
+     * @param player The player whose hand to print
      */
     private void printPlayerHand(Player player) {
         ui.displayDetailedPlayerHand(player.getName(), player.getHand());
@@ -256,63 +188,81 @@ public class GameMediator implements IGameMediator {
      */
     @Override
     public void handleTurn(Player player) {
-        if (this.gameState != GameState.IN_PROGRESS) {
-            throw new IllegalStateException("Cannot handle turn when game is not in progress");
-        }
+        validateGameInProgress();
         
         ui.displayPlayerTurnHeader(player.getName());
         
-        // 1. Check if player has playable cards
+        // Get top card and display game state
         Card topCard = discardPile.getTopCard();
         ui.displayTopCard(topCard.toString());
-        
-        // Print current player's hand
         printPlayerHand(player);
         
+        // Player selects a card to play
         Card selectedCard = player.selectPlayableCard(topCard);
         
         if (selectedCard != null) {
-            // Player plays a card
-            ui.displayPlayerPlayingCard(player.getName(), selectedCard.toString());
-            player.playCard(selectedCard);
-            discardPile.addCard(selectedCard);
-            
-            // Track that a card was played
-            scoreTracker.recordCardPlayed();
-            
-            applyCardEffect(selectedCard);
+            playSelectedCard(player, selectedCard);
         } else {
-            // Player must draw a card
-            ui.displayPlayerDrawingCardOnTurn(player.getName());
-            Card drawnCard = drawPile.drawCard();
-            player.addCardToHand(drawnCard);
-            
-            // Check if drawn card is playable
-            if (isPlayable(drawnCard, topCard)) {
-                ui.displayPlayerPlayingDrawnCard(player.getName(), drawnCard.toString());
-                player.playCard(drawnCard);
-                discardPile.addCard(drawnCard);
-                
-                // Track that a card was played
-                scoreTracker.recordCardPlayed();
-                
-                applyCardEffect(drawnCard);
-            } else {
-                ui.displayDrawnCardCannotBePlayed();
-            }
+            handleDrawingCard(player, topCard);
         }
         
         // Check if player has won
         if (player.getHand().isEmpty()) {
             ui.displayPlayerWinsRound(player.getName());
             endRound(player);
-            return;
         } else {
-            ui.displayPlayerCardCount(player.getName(), player.getHand().size());
+            // Move to the next player
+            currentPlayer = getNextPlayer();
         }
+    }
+    
+    private void validateGameInProgress() {
+        if (this.gameState != GameState.IN_PROGRESS) {
+            throw new IllegalStateException("Cannot handle turn when game is not in progress");
+        }
+    }
+    
+    /**
+     * Handles playing a selected card
+     * 
+     * @param player The player playing the card
+     * @param selectedCard The card being played
+     */
+    private void playSelectedCard(Player player, Card selectedCard) {
+        ui.displayPlayerPlayingCard(player.getName(), selectedCard.toString());
+        player.playCard(selectedCard);
+        discardPile.addCard(selectedCard);
         
-        // Move to next player
-        currentPlayer = getNextPlayer();
+        // Track that a card was played
+        scoreManager.recordCardPlayed();
+        
+        applyCardEffect(selectedCard);
+    }
+    
+    /**
+     * Handles drawing a card when no playable cards exist
+     * 
+     * @param player The player drawing the card
+     * @param topCard The current top card
+     */
+    private void handleDrawingCard(Player player, Card topCard) {
+        ui.displayPlayerDrawingCardOnTurn(player.getName());
+        Card drawnCard = drawPile.drawCard();
+        player.addCardToHand(drawnCard);
+        
+        // Check if drawn card is playable
+        if (isPlayable(drawnCard, topCard)) {
+            ui.displayPlayerPlayingDrawnCard(player.getName(), drawnCard.toString());
+            player.playCard(drawnCard);
+            discardPile.addCard(drawnCard);
+            
+            // Track that a card was played
+            scoreManager.recordCardPlayed();
+            
+            applyCardEffect(drawnCard);
+        } else {
+            ui.displayDrawnCardCannotBePlayed();
+        }
     }
     
     /**
@@ -325,9 +275,6 @@ public class GameMediator implements IGameMediator {
             // Number card, no effect
             return;
         }
-        
-        // Make sure the card has a mediator reference
-        card.setMediator(this);
         
         ui.displayApplyingCardEffectHeader();
         ui.displayApplyingCardEffect(card.toString());
@@ -375,38 +322,54 @@ public class GameMediator implements IGameMediator {
         this.gameState = GameState.ROUND_OVER;
         
         // Update scores
-        scoreTracker.updateScores(winner, players);
+        scoreManager.updateScores(winner, players);
         
         // Log the round to CSV
-        scoreTracker.logRoundToCSV(roundNumber);
+        scoreManager.logRoundToCSV(roundNumber);
         
         // Check if game over (someone reached 500 points)
         if (isGameWon()) {
-            this.gameState = GameState.GAME_OVER;
-            
-            // Find the winner
-            Player gameWinner = players.stream()
-                    .max(Comparator.comparing(player -> scoreTracker.getScore(player)))
-                    .orElse(winner);
-            
-            ui.displayPlayerWinsGame(gameWinner.getName(), scoreTracker.getScore(gameWinner));
+            handleGameOver(winner);
         } else {
-            // Prepare for next round
-            roundNumber++;
-            ui.displayPreparingForNextRound(roundNumber);
-            
-            // Move dealer to the next player for the new round
-            dealerIndex = (dealerIndex + 1) % players.size();
-            currentPlayer = players.get(dealerIndex);
-            
-            // Update dealer status for all players
-            for (Player player : players) {
-                player.setAsDealer(player == currentPlayer);
-            }
-            
-            // Start new round
-            startGame();
+            prepareNextRound();
         }
+    }
+    
+    /**
+     * Handles game over state
+     * 
+     * @param lastRoundWinner The winner of the last round
+     */
+    private void handleGameOver(Player lastRoundWinner) {
+        this.gameState = GameState.GAME_OVER;
+        
+        // Find the winner
+        Player gameWinner = players.stream()
+                .max(Comparator.comparing(player -> scoreManager.getScore(player)))
+                .orElse(lastRoundWinner);
+        
+        ui.displayPlayerWinsGame(gameWinner.getName(), scoreManager.getScore(gameWinner));
+    }
+    
+    /**
+     * Prepares for the next round of play
+     */
+    private void prepareNextRound() {
+        // Prepare for next round
+        roundNumber++;
+        ui.displayPreparingForNextRound(roundNumber);
+        
+        // Move dealer to the next player for the new round
+        dealerIndex = (dealerIndex + 1) % players.size();
+        currentPlayer = players.get(dealerIndex);
+        
+        // Update dealer status for all players
+        for (Player player : players) {
+            player.setAsDealer(player == currentPlayer);
+        }
+        
+        // Start new round
+        startGame();
     }
     
     /**
@@ -416,7 +379,7 @@ public class GameMediator implements IGameMediator {
      */
     private boolean isGameWon() {
         return players.stream()
-                .anyMatch(player -> scoreTracker.getScore(player) >= 500);
+                .anyMatch(player -> scoreManager.getScore(player) >= 500);
     }
     
     /**
@@ -472,41 +435,38 @@ public class GameMediator implements IGameMediator {
      * Determines if a card is playable on the current top card.
      * 
      * @param card The card to check
-     * @param topCard The top card on the discard pile
+     * @param topCard The current top card
      * @return True if the card is playable, false otherwise
      */
     private boolean isPlayable(Card card, Card topCard) {
         return card.getColor().equals(topCard.getColor()) || 
                card.getType().equals(topCard.getType()) ||
-               card.getType().equals("Wild") ||
-               card.getType().equals("Wild Draw Four");
+               card.getColor().equals("Wild");
     }
     
     /**
-     * Validates whether a Wild Draw Four play is legal according to official UNO rules.
-     * Legal if the player has no cards matching the color on top (Wild Draw Four is a last resort).
+     * Checks if the game is over (any player has reached 500 points).
      * 
-     * @param player The player who played the Wild Draw Four
-     * @return True if the play is valid, false otherwise
+     * @return True if the game is over, false otherwise
      */
     @Override
-    public boolean validateWildDrawFour(Player player) {
-        Card topCard = discardPile.getTopCard();
-        String topColor = topCard.getColor();
+    public boolean isGameOver() {
+        return isGameWon();
+    }
+    
+    /**
+     * Creates and initializes players for the game.
+     * 
+     * @param numPlayers The number of players to create
+     */
+    @Override
+    public void createPlayers(int numPlayers) {
+        players.clear();
         
-        // Cannot validate if the top card is wild (no color)
-        if (topColor.isEmpty()) {
-            return true;
+        for (int i = 0; i < numPlayers; i++) {
+            Player player = new Player("Player " + (i + 1), this);
+            addPlayer(player);
         }
-        
-        // Check if player has any cards matching the top color
-        for (Card card : player.getHand()) {
-            if (card.getColor().equals(topColor)) {
-                return false; // Found a matching color, Wild Draw Four not allowed
-            }
-        }
-        
-        return true; // No matching colors, Wild Draw Four is allowed
     }
     
     /**
@@ -516,15 +476,12 @@ public class GameMediator implements IGameMediator {
      */
     @Override
     public void addPlayer(Player player) {
-        if (this.gameState != GameState.INITIALIZED) {
-            throw new IllegalStateException("Cannot add players after game has started");
-        }
         players.add(player);
-        player.setMediator(this);
     }
     
     /**
-     * Gets the next player in turn order.
+     * Gets the next player in the sequence.
+     * Handles direction changes (clockwise/counter-clockwise).
      * 
      * @return The next player
      */
@@ -548,6 +505,9 @@ public class GameMediator implements IGameMediator {
     @Override
     public void switchDirection() {
         isClockwise = !isClockwise;
+        System.out.println(ConsoleColors.YELLOW + "Direction changed to " + 
+                          (isClockwise ? "clockwise" : "counter-clockwise") + 
+                          ConsoleColors.RESET);
     }
     
     /**
@@ -557,28 +517,18 @@ public class GameMediator implements IGameMediator {
      */
     @Override
     public Card requestDraw() {
-        Card drawnCard = drawPile.drawCard();
-        
-        // If draw pile is empty, replenish it from the discard pile
-        if (drawnCard == null) {
+        // Check if the draw pile is empty
+        if (drawPile.isEmpty()) {
             replenishDrawPile();
-            drawnCard = drawPile.drawCard();
-            
-            // If still null after replenishing, create a new Wild card as fallback
-            if (drawnCard == null) {
-                ui.displayNoCardsLeftWarning();
-                drawnCard = new WildCard();
-                drawnCard.setMediator(this);
-            }
         }
         
-        return drawnCard;
+        return drawPile.drawCard();
     }
     
     /**
      * Gets all players in the game.
      * 
-     * @return A copy of the list of players
+     * @return A defensive copy of the list of players
      */
     @Override
     public List<Player> getPlayers() {
@@ -598,37 +548,36 @@ public class GameMediator implements IGameMediator {
     /**
      * Sets the current player.
      * 
-     * @param player The new current player
+     * @param player The player to set as current
      */
     @Override
     public void setCurrentPlayer(Player player) {
-        this.currentPlayer = player;
+        if (!players.contains(player)) {
+            throw new IllegalArgumentException("Player is not in the game");
+        }
+        currentPlayer = player;
     }
     
     /**
-     * Checks if the game is over.
+     * Validates if a Wild Draw Four card can be played.
+     * According to UNO rules, it can only be played if the player has no other cards of the same color as the top card.
      * 
-     * @return True if the game is over, false otherwise
+     * @param player The player attempting to play the card
+     * @return True if the card can be played, false otherwise
      */
     @Override
-    public boolean isGameOver() {
-        return this.gameState == GameState.GAME_OVER;
-    }
-    
-    /**
-     * Creates and adds a specified number of players to the game.
-     * 
-     * @param numPlayers The number of players to create and add
-     */
-    @Override
-    public void createPlayers(int numPlayers) {
-        if (this.gameState != GameState.INITIALIZED) {
-            throw new IllegalStateException("Cannot add players after game has started");
+    public boolean validateWildDrawFour(Player player) {
+        // Get the top card of the discard pile
+        Card topCard = discardPile.getTopCard();
+        String topColor = topCard.getColor();
+        
+        // Check if player has any cards of the same color
+        for (Card card : player.getHand()) {
+            if (card.getColor().equals(topColor)) {
+                return false;
+            }
         }
         
-        for (int i = 1; i <= numPlayers; i++) {
-            Player player = new Player("Player" + i);
-            addPlayer(player);
-        }
+        return true;
     }
 } 

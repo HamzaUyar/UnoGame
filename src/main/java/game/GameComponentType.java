@@ -8,6 +8,6 @@ public enum GameComponentType {
     DECK,
     DRAW_PILE,
     DISCARD_PILE,
-    SCORE_TRACKER,
+    SCORE_MANAGER,
     CARD
 } 

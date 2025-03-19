@@ -1,5 +1,6 @@
 package main.java.cards.actioncards;
 
+import main.java.game.IGameMediator;
 import main.java.players.Player;
 import main.java.utils.ConsoleColors;
 
@@ -16,6 +17,17 @@ public class WildDrawFourCard extends WildCard {
      */
     public WildDrawFourCard() {
         super();
+        this.type = "Wild Draw Four"; // Override type from parent class
+    }
+    
+    /**
+     * Constructs a new Wild Draw Four card with no initial color, a value of 50 points, and a mediator.
+     * Overrides the type from the parent WildCard class.
+     * 
+     * @param mediator The game mediator
+     */
+    public WildDrawFourCard(IGameMediator mediator) {
+        super(mediator);
         this.type = "Wild Draw Four"; // Override type from parent class
     }
 

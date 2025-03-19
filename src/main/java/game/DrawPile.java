@@ -10,16 +10,29 @@ import main.java.cards.Card;
  * DrawPile represents the pile of cards that players draw from during the game.
  * It encapsulates the management of cards available for drawing.
  */
-public class DrawPile {
-    private List<Card> cards;
+public class DrawPile implements IGameComponent {
+    private final List<Card> cards;
+    private final IGameMediator mediator;
     
     /**
-     * Constructs a new, empty draw pile.
+     * Constructs a new, empty draw pile with a mediator.
+     * 
+     * @param mediator The game mediator
      */
-    public DrawPile() {
+    public DrawPile(IGameMediator mediator) {
         this.cards = new ArrayList<>();
+        this.mediator = mediator;
     }
     
+    /**
+     * Gets the type of this component.
+     * 
+     * @return The component type
+     */
+    @Override
+    public GameComponentType getComponentType() {
+        return GameComponentType.DRAW_PILE;
+    }
     
     /**
      * Draws a card from the top of the pile.
@@ -57,7 +70,8 @@ public class DrawPile {
         if (cards == null) {
             throw new IllegalArgumentException("Cards list cannot be null");
         }
-        this.cards = new ArrayList<>(cards);
+        this.cards.clear();
+        this.cards.addAll(cards);
     }
     
     /**

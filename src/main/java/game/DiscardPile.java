@@ -10,16 +10,29 @@ import main.java.cards.Card;
  * DiscardPile represents the pile where players place their played cards.
  * It encapsulates the management of discarded cards during the game.
  */
-public class DiscardPile {
-    private List<Card> cards;
+public class DiscardPile implements IGameComponent {
+    private final List<Card> cards;
+    private final IGameMediator mediator;
     
     /**
-     * Constructs a new, empty discard pile.
+     * Constructs a new, empty discard pile with a mediator.
+     * 
+     * @param mediator The game mediator
      */
-    public DiscardPile() {
+    public DiscardPile(IGameMediator mediator) {
         this.cards = new ArrayList<>();
+        this.mediator = mediator;
     }
     
+    /**
+     * Gets the type of this component.
+     * 
+     * @return The component type
+     */
+    @Override
+    public GameComponentType getComponentType() {
+        return GameComponentType.DISCARD_PILE;
+    }
     
     /**
      * Adds a card to the top of the discard pile.

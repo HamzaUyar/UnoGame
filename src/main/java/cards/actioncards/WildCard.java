@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import main.java.cards.Card;
+import main.java.game.IGameMediator;
 import main.java.players.Player;
 import main.java.utils.ConsoleColors;
 
@@ -20,6 +21,15 @@ public class WildCard extends ActionCard {
      */
     public WildCard() {
         super("", "Wild", 50); // No color initially
+    }
+    
+    /**
+     * Constructs a new Wild card with no initial color, a value of 50 points, and a mediator.
+     * 
+     * @param mediator The game mediator
+     */
+    public WildCard(IGameMediator mediator) {
+        super("", "Wild", 50, mediator); // No color initially
     }
 
     /**

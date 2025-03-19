@@ -3,6 +3,7 @@ package main.java.game;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import main.java.cards.Card;
 import main.java.cards.NumberCard;
@@ -11,25 +12,33 @@ import main.java.cards.actioncards.*;
 /**
  * Deck represents the complete set of cards used in the UNO game.
  * It is responsible for creating the initial set of cards and shuffling them.
+ * Follows the Component role in the Mediator pattern.
  */
-public class Deck {
-    private List<Card> cards;
-    private GameMediator mediator;
+public class Deck implements IGameComponent {
+    private static final String[] COLORS = {"Red", "Green", "Blue", "Yellow"};
+    private static final int NUM_WILD_CARDS = 4;
+    
+    private final List<Card> cards;
+    private final IGameMediator mediator;
     
     /**
-     * Constructs a new, empty deck.
+     * Constructs a new, empty deck with a mediator.
+     * 
+     * @param mediator The game mediator
      */
-    public Deck() {
+    public Deck(IGameMediator mediator) {
         this.cards = new ArrayList<>();
+        this.mediator = mediator;
     }
     
     /**
-     * Sets the game mediator for this deck.
+     * Gets the component type of this deck.
      *
-     * @param mediator The game mediator
+     * @return The component type
      */
-    public void setMediator(GameMediator mediator) {
-        this.mediator = mediator;
+    @Override
+    public GameComponentType getComponentType() {
+        return GameComponentType.DECK;
     }
     
     /**
@@ -42,43 +51,55 @@ public class Deck {
     public void initializeDeck() {
         cards.clear();
         
-        // Create number cards (0-9)
-        // One 0 and two 1-9 of each color
-        String[] colors = {"Red", "Green", "Blue", "Yellow"};
-        
-        for (String color : colors) {
-            // Add one 0 card for each color
-            cards.add(new NumberCard(color, 0));
-            
-            // Add two 1-9 cards for each color
-            for (int num = 1; num <= 9; num++) {
-                cards.add(new NumberCard(color, num));
-                cards.add(new NumberCard(color, num));
-            }
-            
-            // Add action cards (two of each per color)
-            for (int i = 0; i < 2; i++) {
-                cards.add(new SkipCard(color));
-                cards.add(new ReverseCard(color));
-                cards.add(new DrawTwoCard(color));
-            }
-        }
-        
-        // Add Wild cards
-        for (int i = 0; i < 4; i++) {
-            cards.add(new WildCard());
-            cards.add(new WildDrawFourCard());
-        }
-        
-        // Set the mediator for each card
-        if (mediator != null) {
-            for (Card card : cards) {
-                card.setMediator(mediator);
-            }
-        }
+        createNumberCards();
+        createActionCards();
+        createWildCards();
         
         // Shuffle the deck
         shuffle();
+    }
+    
+    /**
+     * Creates number cards for each color (0-9).
+     * One 0 card and two of each 1-9 card per color.
+     */
+    private void createNumberCards() {
+        for (String color : COLORS) {
+            // Add one 0 card for each color
+            cards.add(new NumberCard(color, 0, mediator));
+            
+            // Add two 1-9 cards for each color
+            for (int num = 1; num <= 9; num++) {
+                cards.add(new NumberCard(color, num, mediator));
+                cards.add(new NumberCard(color, num, mediator));
+            }
+        }
+    }
+    
+    /**
+     * Creates action cards for each color.
+     * Two of each action card type per color.
+     */
+    private void createActionCards() {
+        for (String color : COLORS) {
+            // Add action cards (two of each per color)
+            IntStream.range(0, 2).forEach(i -> {
+                cards.add(new SkipCard(color, mediator));
+                cards.add(new ReverseCard(color, mediator));
+                cards.add(new DrawTwoCard(color, mediator));
+            });
+        }
+    }
+    
+    /**
+     * Creates wild cards.
+     * Four of each wild card type.
+     */
+    private void createWildCards() {
+        IntStream.range(0, NUM_WILD_CARDS).forEach(i -> {
+            cards.add(new WildCard(mediator));
+            cards.add(new WildDrawFourCard(mediator));
+        });
     }
     
     /**
@@ -151,10 +172,12 @@ public class Deck {
      * @param count The number of cards to print
      */
     public void printTopCards(int count) {
-        System.out.println("Top " + Math.min(count, cards.size()) + " cards in deck:");
-        for (int i = 0; i < Math.min(count, cards.size()); i++) {
-            System.out.println((i+1) + ". " + cards.get(i));
-        }
+        int cardsToPrint = Math.min(count, cards.size());
+        System.out.println("Top " + cardsToPrint + " cards in deck:");
+        
+        IntStream.range(0, cardsToPrint)
+                .forEach(i -> System.out.println((i+1) + ". " + cards.get(i)));
+        
         System.out.println();
     }
 } 

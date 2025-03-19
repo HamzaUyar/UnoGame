@@ -12,13 +12,6 @@ import java.util.List;
 public interface IGameMediator {
     
     /**
-     * Registers a game component with the mediator.
-     * 
-     * @param component The component to register
-     */
-    void registerComponent(IGameComponent component);
-    
-    /**
      * Starts a new game.
      */
     void startGame();

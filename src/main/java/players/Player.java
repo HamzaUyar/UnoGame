@@ -6,28 +6,30 @@ import java.util.stream.Collectors;
 import java.util.concurrent.ThreadLocalRandom;
 
 import main.java.cards.Card;
-import main.java.game.GameMediator;
+import main.java.game.IGameMediator;
 import main.java.utils.ConsoleColors;
 
 /**
  * Player class represents a player in the UNO game.
  * It encapsulates the player's state (name, hand) and behavior (playing cards).
- * Follows the Mediator pattern by interacting with the game through GameMediator.
+ * Follows the Mediator pattern by interacting with the game through IGameMediator.
  */
 public class Player {
     private final String name;
     private List<Card> hand;
-    private GameMediator mediator;
+    private final IGameMediator mediator;
     private boolean isDealer;
 
     /**
-     * Constructs a new Player with the given name.
+     * Constructs a new Player with the given name and mediator.
      * 
      * @param name The player's name
+     * @param mediator The game mediator
      */
-    public Player(String name) {
+    public Player(String name, IGameMediator mediator) {
         this.name = name;
         this.hand = new ArrayList<>();
+        this.mediator = mediator;
         this.isDealer = false;
     }
 
@@ -35,6 +37,7 @@ public class Player {
      * Plays a card from the player's hand.
      * 
      * @param card The card to play
+     * @throws IllegalArgumentException if the card is not in the player's hand
      */
     public void playCard(Card card) {
         if (!hand.contains(card)) {
@@ -45,14 +48,25 @@ public class Player {
 
     /**
      * Draws a card from the draw pile (via the mediator).
+     * 
+     * @throws IllegalStateException if the player is not connected to a mediator
      */
     public void drawCard() {
-        if (mediator == null) {
-            throw new IllegalStateException("Player is not connected to a game mediator");
-        }
+        ensureMediatorConnected();
         Card drawnCard = mediator.requestDraw();
         hand.add(drawnCard);
         System.out.println(ConsoleColors.WHITE + name + " drew " + ConsoleColors.formatCard(drawnCard.toString()) + ConsoleColors.RESET);
+    }
+    
+    /**
+     * Ensures the player is connected to a mediator.
+     * 
+     * @throws IllegalStateException if the player is not connected to a mediator
+     */
+    private void ensureMediatorConnected() {
+        if (mediator == null) {
+            throw new IllegalStateException("Player is not connected to a game mediator");
+        }
     }
 
     /**
@@ -63,31 +77,77 @@ public class Player {
      * @return The selected card, or null if no playable card exists
      */
     public Card selectPlayableCard(Card topCard) {
-        // Always check for Wild cards first, as they can be played anytime
+        // Try to play a wild card with some probability
+        Card wildCard = selectWildCard();
+        if (wildCard != null) {
+            return wildCard;
+        }
+        
+        // Find regular playable cards
+        List<Card> regularPlayableCards = findRegularPlayableCards(topCard);
+        if (!regularPlayableCards.isEmpty()) {
+            return selectBestRegularCard(regularPlayableCards);
+        }
+        
+        // Check if we can play a Wild Draw Four card
+        Card wildDrawFour = selectWildDrawFour(topCard);
+        if (wildDrawFour != null) {
+            return wildDrawFour;
+        }
+        
+        // No playable cards
+        return null;
+    }
+    
+    /**
+     * Tries to select a Wild card with 30% probability.
+     * 
+     * @return A Wild card or null
+     */
+    private Card selectWildCard() {
         List<Card> wildCards = hand.stream()
                 .filter(card -> card.getType().equals("Wild"))
                 .collect(Collectors.toList());
         
-        // Maybe play a Wild card (with 30% probability if available)
+        // Play a Wild card with 30% probability if available
         if (!wildCards.isEmpty() && ThreadLocalRandom.current().nextDouble() < 0.3) {
             return wildCards.get(0);
         }
         
-        // Find all non-Wild Draw Four playable cards
-        List<Card> regularPlayableCards = hand.stream()
+        return null;
+    }
+    
+    /**
+     * Finds all regular (non-Wild Draw Four) playable cards.
+     * 
+     * @param topCard The current top card
+     * @return List of playable cards
+     */
+    private List<Card> findRegularPlayableCards(Card topCard) {
+        return hand.stream()
                 .filter(card -> !card.getType().equals("Wild Draw Four") && isPlayable(card, topCard))
                 .collect(Collectors.toList());
-        
-        // If has regular playable cards, use them
-        if (!regularPlayableCards.isEmpty()) {
-            // Select the card with the highest value
-            return regularPlayableCards.stream()
-                    .max((c1, c2) -> Integer.compare(c1.getValue(), c2.getValue()))
-                    .orElse(regularPlayableCards.get(0));
-        }
-        
-        // Check if we have a Wild Draw Four and if it's valid to play
-        // (only if we have no other card matching the color of the top card)
+    }
+    
+    /**
+     * Selects the best card from regular playable cards based on value.
+     * 
+     * @param playableCards List of playable cards
+     * @return The selected card
+     */
+    private Card selectBestRegularCard(List<Card> playableCards) {
+        return playableCards.stream()
+                .max((c1, c2) -> Integer.compare(c1.getValue(), c2.getValue()))
+                .orElse(playableCards.get(0));
+    }
+    
+    /**
+     * Tries to select a Wild Draw Four card if valid to play.
+     * 
+     * @param topCard The current top card
+     * @return A Wild Draw Four card or null
+     */
+    private Card selectWildDrawFour(Card topCard) {
         List<Card> wildDrawFourCards = hand.stream()
                 .filter(card -> card.getType().equals("Wild Draw Four"))
                 .collect(Collectors.toList());
@@ -103,7 +163,6 @@ public class Player {
             }
         }
         
-        // No playable cards
         return null;
     }
 
@@ -154,6 +213,7 @@ public class Player {
      * Adds a card to the player's hand.
      * 
      * @param card The card to add
+     * @throws IllegalArgumentException if the card is null
      */
     public void addCardToHand(Card card) {
         if (card == null) {
@@ -170,25 +230,14 @@ public class Player {
     }
 
     /**
-     * Sets the game mediator for this player.
-     * 
-     * @param mediator The game mediator
-     */
-    public void setMediator(GameMediator mediator) {
-        this.mediator = mediator;
-    }
-
-    /**
      * Calculates the total point value of all cards in the player's hand.
      * 
      * @return The sum of all card values in the hand
      */
     public int calculateHandValue() {
-        int total = 0;
-        for (Card card : hand) {
-            total += card.getValue();
-        }
-        return total;
+        return hand.stream()
+                .mapToInt(Card::getValue)
+                .sum();
     }
     
     /**
