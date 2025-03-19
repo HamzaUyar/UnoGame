@@ -1,8 +1,6 @@
 package main.java.cards.actioncards;
 
 import main.java.cards.Card;
-import main.java.game.GameMediator;
-
 /**
  * ActionCard is the abstract base class for all cards with special effects.
  * It extends Card and represents a higher level of abstraction for action cards.

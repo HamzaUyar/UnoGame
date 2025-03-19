@@ -1,6 +1,5 @@
 package main.java.cards.actioncards;
 
-import main.java.game.GameMediator;
 import main.java.utils.ConsoleColors;
 
 /**

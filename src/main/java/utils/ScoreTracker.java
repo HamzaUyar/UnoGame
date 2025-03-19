@@ -7,14 +7,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import main.java.game.GameMediator;
+
 import main.java.players.Player;
 
 /**
@@ -28,7 +27,6 @@ public class ScoreTracker {
     private int cardsPlayedInRound;
     private long roundStartTime;
     private String roundWinner;
-    private GameMediator mediator;
     
     /**
      * Constructs a new ScoreTracker with the default CSV file path.
@@ -51,14 +49,6 @@ public class ScoreTracker {
         initializeCSVFile();
     }
     
-    /**
-     * Sets the game mediator for this score tracker.
-     *
-     * @param mediator The game mediator
-     */
-    public void setMediator(GameMediator mediator) {
-        this.mediator = mediator;
-    }
     
     /**
      * Initializes the CSV file for score logging.
@@ -267,12 +257,4 @@ public class ScoreTracker {
         return Map.copyOf(scores);
     }
     
-    /**
-     * Checks if any player has reached the winning score (500 points).
-     * 
-     * @return True if a player has won, false otherwise
-     */
-    private boolean checkWinCondition() {
-        return scores.values().stream().anyMatch(score -> score >= 500);
-    }
 } 

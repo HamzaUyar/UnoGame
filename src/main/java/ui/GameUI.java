@@ -2,7 +2,6 @@ package main.java.ui;
 
 import java.util.List;
 import main.java.cards.Card;
-import main.java.players.Player;
 import main.java.utils.ConsoleColors;
 
 /**
@@ -15,21 +14,25 @@ public class GameUI {
      * Displays the welcome message and game rules to the console.
      */
     public void displayWelcomeMessage() {
-        System.out.println(ConsoleColors.CYAN_BOLD + "Starting UNO Game..." + ConsoleColors.RESET);
+        System.out.println();
+        // Create a fancy UNO title with rainbow effect
+        String unoTitle = ConsoleColors.rainbow("  U N O  ");
+        printFancyBanner(unoTitle, ConsoleColors.CYAN_BOLD_BRIGHT);
+        
         System.out.println();
         
-        System.out.println(ConsoleColors.formatHeader(ConsoleColors.RED_BOLD + "U" + 
-                                                      ConsoleColors.GREEN_BOLD + "N" + 
-                                                      ConsoleColors.BLUE_BOLD + "O" + 
-                                                      ConsoleColors.RESET + 
-                                                      ConsoleColors.YELLOW_BOLD + " GAME SIMULATOR"));
+        System.out.println(ConsoleColors.formatHeader(ConsoleColors.RED_BOLD_BRIGHT + "U" + 
+                                                     ConsoleColors.GREEN_BOLD_BRIGHT + "N" + 
+                                                     ConsoleColors.BLUE_BOLD_BRIGHT + "O" + 
+                                                     ConsoleColors.RESET + 
+                                                     ConsoleColors.YELLOW_BOLD_BRIGHT + " GAME SIMULATOR"));
         
         System.out.println(ConsoleColors.WHITE_BOLD + "Game Rules:" + ConsoleColors.RESET);
-        System.out.println("• Match cards by color or number");
+        System.out.println(ConsoleColors.WHITE + "• Match cards by color or number");
         System.out.println("• Action cards: Skip, Reverse, Draw Two, Wild, Wild Draw Four");
         System.out.println("• First player to get rid of all cards wins the round");
         System.out.println("• Winner gets points equal to the sum of opponents' card values");
-        System.out.println("• First player to reach 500 points wins the game!");
+        System.out.println("• First player to reach 500 points wins the game!" + ConsoleColors.RESET);
         System.out.println(ConsoleColors.SHORT_DIVIDER);
     }
     
@@ -37,8 +40,63 @@ public class GameUI {
      * Displays a game completion message.
      */
     public void displayGameCompletionMessage() {
-        System.out.println(ConsoleColors.formatHeader("GAME DEMO COMPLETED"));
-        System.out.println(ConsoleColors.YELLOW_BOLD + "Thanks for playing UNO!" + ConsoleColors.RESET);
+        System.out.println(ConsoleColors.formatHeader("GAME COMPLETED"));
+        
+        String thankYouMessage = "Thanks for playing UNO!";
+        printFancyBanner(thankYouMessage, ConsoleColors.YELLOW_BOLD_BRIGHT);
+    }
+    
+    /**
+     * Creates a fancy banner with the text centered
+     * 
+     * @param text Text to display in the banner
+     * @param color Color for the banner
+     */
+    private void printFancyBanner(String text, String color) {
+        int bannerWidth = 60;
+        int padding = (bannerWidth - text.length()) / 2;
+        
+        StringBuilder banner = new StringBuilder();
+        banner.append("\n").append(color);
+        
+        // Top border with stars
+        for (int i = 0; i < bannerWidth; i++) {
+            banner.append("*");
+        }
+        
+        // Empty line
+        banner.append("\n*");
+        for (int i = 0; i < bannerWidth - 2; i++) {
+            banner.append(" ");
+        }
+        banner.append("*");
+        
+        // Text line
+        banner.append("\n*");
+        for (int i = 0; i < padding; i++) {
+            banner.append(" ");
+        }
+        banner.append(text);
+        for (int i = 0; i < padding - (text.length() % 2 == 0 ? 0 : 1); i++) {
+            banner.append(" ");
+        }
+        banner.append("*");
+        
+        // Empty line
+        banner.append("\n*");
+        for (int i = 0; i < bannerWidth - 2; i++) {
+            banner.append(" ");
+        }
+        banner.append("*");
+        
+        // Bottom border with stars
+        banner.append("\n");
+        for (int i = 0; i < bannerWidth; i++) {
+            banner.append("*");
+        }
+        
+        banner.append(ConsoleColors.RESET);
+        System.out.println(banner.toString());
     }
     
     /**
@@ -57,8 +115,8 @@ public class GameUI {
      */
     public void displayGameSetupComplete(String dealerName) {
         System.out.println(ConsoleColors.formatSubHeader("GAME SETUP COMPLETE"));
-        System.out.println(ConsoleColors.WHITE_BOLD + "Dealer/Starting player: " + 
-                           ConsoleColors.YELLOW_BOLD + dealerName + ConsoleColors.RESET);
+        System.out.println(ConsoleColors.WHITE_BOLD_BRIGHT + "Dealer/Starting player: " + 
+                          ConsoleColors.formatPlayerName(dealerName));
     }
     
     /**
@@ -66,7 +124,7 @@ public class GameUI {
      */
     public void displayDeterminingDealerHeader() {
         System.out.println(ConsoleColors.formatSubHeader("DETERMINING DEALER"));
-        System.out.println(ConsoleColors.WHITE + "Each player draws a card; highest card value becomes the dealer." + ConsoleColors.RESET);
+        System.out.println(ConsoleColors.WHITE_BRIGHT + "Each player draws a card; highest card value becomes the dealer." + ConsoleColors.RESET);
     }
     
     /**
@@ -76,7 +134,7 @@ public class GameUI {
      * @param cardDescription The description of the card drawn
      */
     public void displayPlayerDrawingCard(String playerName, String cardDescription) {
-        System.out.println(playerName + " draws " + ConsoleColors.formatCard(cardDescription));
+        System.out.println(ConsoleColors.formatPlayerName(playerName) + " draws " + ConsoleColors.formatCard(cardDescription));
     }
     
     /**
@@ -86,7 +144,7 @@ public class GameUI {
      * @param cardDescription The description of the highest card
      */
     public void displayDealerSelected(String dealerName, String cardDescription) {
-        System.out.println(ConsoleColors.highlight(dealerName + 
+        System.out.println(ConsoleColors.highlight(ConsoleColors.formatPlayerName(dealerName) + 
             " has the highest card: " + ConsoleColors.formatCard(cardDescription) + 
             " and will be the dealer!"));
     }
@@ -95,14 +153,14 @@ public class GameUI {
      * Displays a message about cards being returned to the deck.
      */
     public void displayCardsReturnedToDeck() {
-        System.out.println(ConsoleColors.WHITE + "Cards returned to deck for shuffling." + ConsoleColors.RESET);
+        System.out.println(ConsoleColors.WHITE_BRIGHT + "Cards returned to deck for shuffling." + ConsoleColors.RESET);
     }
     
     /**
      * Displays a message about the deck being shuffled.
      */
     public void displayDeckShuffled() {
-        System.out.println(ConsoleColors.WHITE + "Dealer shuffles the deck." + ConsoleColors.RESET);
+        System.out.println(ConsoleColors.WHITE_BRIGHT + "Dealer shuffles the deck." + ConsoleColors.RESET);
     }
     
     /**
@@ -112,7 +170,9 @@ public class GameUI {
      */
     public void displayDealingCardsHeader(String dealerName) {
         System.out.println(ConsoleColors.formatSubHeader("DEALING CARDS"));
-        System.out.println(ConsoleColors.WHITE + "Dealer (" + dealerName + ") deals 7 cards to each player." + ConsoleColors.RESET);
+        System.out.println(ConsoleColors.WHITE_BRIGHT + "Dealer (" + 
+                          ConsoleColors.formatPlayerName(dealerName) + ") deals 7 cards to each player." + 
+                          ConsoleColors.RESET);
     }
     
     /**
@@ -121,7 +181,7 @@ public class GameUI {
      * @param roundNum The dealing round number
      */
     public void displayDealRoundHeader(int roundNum) {
-        System.out.println(ConsoleColors.CYAN + "\nDeal Round " + roundNum + ":" + ConsoleColors.RESET);
+        System.out.println(ConsoleColors.CYAN_BRIGHT + "\n🎴 Deal Round " + roundNum + ":" + ConsoleColors.RESET);
     }
     
     /**
@@ -132,7 +192,7 @@ public class GameUI {
      */
     public void displayPlayerHand(String playerName, List<Card> hand) {
         StringBuilder handStr = new StringBuilder();
-        handStr.append(ConsoleColors.WHITE_BOLD).append(playerName).append(": ").append(ConsoleColors.RESET);
+        handStr.append(ConsoleColors.formatPlayerName(playerName)).append(": ");
         
         for (int j = 0; j < hand.size(); j++) {
             handStr.append(ConsoleColors.formatCard(hand.get(j).toString()));
@@ -147,7 +207,7 @@ public class GameUI {
      * Displays a message that all players have been dealt cards.
      */
     public void displayAllPlayersDealt() {
-        System.out.println(ConsoleColors.GREEN + "\nAll players have been dealt 7 cards each." + ConsoleColors.RESET);
+        System.out.println(ConsoleColors.GREEN_BRIGHT + "\n✓ All players have been dealt 7 cards each." + ConsoleColors.RESET);
     }
     
     /**
@@ -156,8 +216,8 @@ public class GameUI {
      * @param cardDescription The description of the starting card
      */
     public void displayStartingCard(String cardDescription) {
-        System.out.println(ConsoleColors.WHITE_BOLD + "Starting card: " + 
-                           ConsoleColors.formatCard(cardDescription) + ConsoleColors.RESET);
+        System.out.println(ConsoleColors.WHITE_BOLD_BRIGHT + "Starting card: " + 
+                          ConsoleColors.formatCard(cardDescription) + ConsoleColors.RESET);
     }
     
     /**
@@ -166,7 +226,7 @@ public class GameUI {
      * @param playerName The name of the player whose turn it is
      */
     public void displayPlayerTurnHeader(String playerName) {
-        System.out.println(ConsoleColors.formatSubHeader(playerName + "'S TURN"));
+        System.out.println(ConsoleColors.formatSubHeader("🎮 " + playerName + "'S TURN"));
     }
     
     /**
@@ -175,8 +235,8 @@ public class GameUI {
      * @param cardDescription The description of the top card
      */
     public void displayTopCard(String cardDescription) {
-        System.out.println(ConsoleColors.WHITE_BOLD + "Top card: " + 
-                           ConsoleColors.formatCard(cardDescription) + ConsoleColors.RESET);
+        System.out.println(ConsoleColors.WHITE_BOLD_BRIGHT + "Top card: " + 
+                          ConsoleColors.formatCard(cardDescription) + ConsoleColors.RESET);
     }
     
     /**
@@ -186,7 +246,7 @@ public class GameUI {
      * @param cardDescription The description of the card being played
      */
     public void displayPlayerPlayingCard(String playerName, String cardDescription) {
-        System.out.println(ConsoleColors.highlight(playerName + " plays " + 
+        System.out.println(ConsoleColors.highlight(ConsoleColors.formatPlayerName(playerName) + " plays " + 
                                                  ConsoleColors.formatCard(cardDescription)));
     }
     
@@ -196,8 +256,9 @@ public class GameUI {
      * @param playerName The name of the player
      */
     public void displayPlayerDrawingCardOnTurn(String playerName) {
-        System.out.println(ConsoleColors.WHITE + playerName + 
-                           " has no playable cards and draws a card" + ConsoleColors.RESET);
+        System.out.println(ConsoleColors.WHITE_BRIGHT + 
+                          ConsoleColors.formatPlayerName(playerName) + 
+                          " has no playable cards and draws a card" + ConsoleColors.RESET);
     }
     
     /**
@@ -207,7 +268,8 @@ public class GameUI {
      * @param cardDescription The description of the drawn card
      */
     public void displayPlayerPlayingDrawnCard(String playerName, String cardDescription) {
-        System.out.println(ConsoleColors.highlight(playerName + " plays drawn card: " + 
+        System.out.println(ConsoleColors.highlight(ConsoleColors.formatPlayerName(playerName) + 
+                                                 " plays drawn card: " + 
                                                  ConsoleColors.formatCard(cardDescription)));
     }
     
@@ -215,7 +277,7 @@ public class GameUI {
      * Displays a message that a drawn card cannot be played.
      */
     public void displayDrawnCardCannotBePlayed() {
-        System.out.println(ConsoleColors.WHITE + "Drawn card cannot be played. End turn." + ConsoleColors.RESET);
+        System.out.println(ConsoleColors.WHITE_BRIGHT + "⛔ Drawn card cannot be played. End turn." + ConsoleColors.RESET);
     }
     
     /**
@@ -225,8 +287,17 @@ public class GameUI {
      * @param cardCount The number of cards the player has left
      */
     public void displayPlayerCardCount(String playerName, int cardCount) {
-        System.out.println(ConsoleColors.WHITE + playerName + " has " + 
-            ConsoleColors.YELLOW_BOLD + cardCount + ConsoleColors.WHITE + " cards left" + ConsoleColors.RESET);
+        String cardEmoji = cardCount == 1 ? "⚠️ " : "🎴 ";
+        System.out.println(ConsoleColors.WHITE_BRIGHT + cardEmoji + 
+                          ConsoleColors.formatPlayerName(playerName) + " has " + 
+                          ConsoleColors.YELLOW_BOLD_BRIGHT + cardCount + 
+                          ConsoleColors.WHITE_BRIGHT + " card" + (cardCount == 1 ? "" : "s") + " left" + 
+                          ConsoleColors.RESET);
+        
+        // Add UNO warning if player has only one card
+        if (cardCount == 1) {
+            System.out.println(ConsoleColors.RED_BOLD_BRIGHT + "   ⚠️  UNO!  ⚠️" + ConsoleColors.RESET);
+        }
     }
     
     /**
@@ -235,8 +306,8 @@ public class GameUI {
      * @param playerName The name of the player who won
      */
     public void displayPlayerWinsRound(String playerName) {
-        System.out.println(ConsoleColors.formatHeader(ConsoleColors.YELLOW_BOLD + 
-                                                   "🎉 " + playerName + " WINS THE ROUND! 🎉"));
+        String message = "🎉 " + playerName + " WINS THE ROUND! 🎉";
+        System.out.println(ConsoleColors.formatHeader(ConsoleColors.YELLOW_BOLD_BRIGHT + message));
     }
     
     /**
@@ -246,8 +317,21 @@ public class GameUI {
      * @param score The player's final score
      */
     public void displayPlayerWinsGame(String playerName, int score) {
-        System.out.println(ConsoleColors.formatHeader(ConsoleColors.YELLOW_BOLD + "🏆 " + 
-                playerName + " WINS THE GAME WITH " + score + " POINTS! 🏆" + ConsoleColors.RESET));
+        String winMessage = "🏆 " + playerName + " WINS THE GAME WITH " + score + " POINTS! 🏆";
+        System.out.println(ConsoleColors.formatHeader(ConsoleColors.YELLOW_BOLD_BRIGHT + winMessage));
+        
+        // Display a trophy ASCII art
+        System.out.println(ConsoleColors.YELLOW_BOLD_BRIGHT);
+        System.out.println("       ___________      ");
+        System.out.println("      '._==_==_=_.'     ");
+        System.out.println("      .-\\:      /-.    ");
+        System.out.println("     | (|:.     |) |    ");
+        System.out.println("      '-|:.     |-'     ");
+        System.out.println("        \\::.    /      ");
+        System.out.println("         '::. .'        ");
+        System.out.println("           ) (          ");
+        System.out.println("         _.' '._        ");
+        System.out.println("        '-------'       " + ConsoleColors.RESET);
     }
     
     /**

@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import main.java.cards.Card;
-import main.java.game.GameMediator;
 import main.java.players.Player;
 import main.java.utils.ConsoleColors;
 

@@ -1,9 +1,5 @@
 package main.java.cards.actioncards;
 
-import java.util.List;
-
-import main.java.cards.Card;
-import main.java.game.GameMediator;
 import main.java.players.Player;
 import main.java.utils.ConsoleColors;
 

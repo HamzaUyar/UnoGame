@@ -1,7 +1,5 @@
 package main.java.cards;
 
-import main.java.game.GameMediator;
-
 /**
  * NumberCard represents the number cards in the UNO deck.
  * It extends the abstract Card class and provides a concrete implementation 

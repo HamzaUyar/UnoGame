@@ -55,9 +55,6 @@ public class GameMediator implements IGameMediator {
         
         // Set up mediator references instead of component registration for now
         this.deck.setMediator(this);
-        this.drawPile.setMediator(this);
-        this.discardPile.setMediator(this);
-        this.scoreTracker.setMediator(this);
         
         // TODO: Update these components to implement IGameComponent interface
         // registerComponent(this.deck);

@@ -3,8 +3,6 @@ package main.java.game;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
 
 import main.java.cards.Card;
 import main.java.cards.NumberCard;
@@ -17,7 +15,6 @@ import main.java.cards.actioncards.*;
 public class Deck {
     private List<Card> cards;
     private GameMediator mediator;
-    private static final String[] COLORS = {"Red", "Green", "Blue", "Yellow"};
     
     /**
      * Constructs a new, empty deck.
