@@ -77,6 +77,17 @@ The game provides detailed console output with colorful formatting to make the g
 - Score updates
 - Win conditions
 
+The terminal output can become quite lengthy during gameplay, especially for longer games with multiple rounds. To make it easier to review gameplay history, all console output is also logged to the `logs` directory.
+
+### File Logging
+
+All game events displayed in the terminal are simultaneously recorded to log files in the `logs` directory. This dual logging system provides several benefits:
+- Permanent record of all game actions and events
+- Ability to review past games without scrolling through terminal history
+- More readable format for analyzing lengthy game sessions
+
+Due to the extensive nature of the console output, it's often more convenient to follow the game flow by examining these log files instead of the terminal window.
+
 ### CSV Logging
 
 The `ScoreTracker` component records game scores to a CSV file in a simple, readable format:
@@ -141,3 +152,4 @@ Possible future improvements to the project:
 - Additional card variants and house rules
 - AI improvements for computer players
 - Persistent player statistics
+
