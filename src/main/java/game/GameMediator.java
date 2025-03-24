@@ -85,6 +85,9 @@ public class GameMediator implements IGameMediator {
         
         ui.displayRoundHeader(roundNumber);
         
+        // Display number of players
+        System.out.println(ConsoleColors.WHITE_BRIGHT + "Game starting with " + players.size() + " players." + ConsoleColors.RESET);
+        
         // Start tracking the new round
         scoreTracker.startNewRound();
         

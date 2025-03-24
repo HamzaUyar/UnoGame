@@ -5,6 +5,7 @@ import main.java.game.IGameMediator;
 import main.java.players.Player;
 import main.java.ui.GameUI;
 import main.java.utils.ConsoleLogger;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * GameApp serves as the entry point for the UNO game application.
@@ -45,8 +46,11 @@ public class GameApp {
     public void startGame() {
         ui.displayWelcomeMessage();
         
+        // Randomly determine the number of players (2-4)
+        int numPlayers = ThreadLocalRandom.current().nextInt(2, 5); // 2 to 4 inclusive
+        
         // Create players
-        mediator.createPlayers(4);
+        mediator.createPlayers(numPlayers);
         
         // Start the game
         mediator.startGame();
