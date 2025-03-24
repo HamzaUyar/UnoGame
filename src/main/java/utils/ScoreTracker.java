@@ -15,18 +15,23 @@ import java.util.stream.Collectors;
 
 
 import main.java.players.Player;
+import main.java.game.GameComponentType;
+import main.java.game.IGameComponent;
+import main.java.game.IGameMediator;
 
 /**
  * ScoreTracker is responsible for tracking player scores and persisting them to a CSV file.
  * It follows the Single Responsibility Principle by focusing solely on score management.
+ * Implements IGameComponent interface to participate in the Mediator pattern.
  */
-public class ScoreTracker {
+public class ScoreTracker implements IGameComponent {
     private final Map<Player, Integer> scores;
     private final String csvPath;
     private static final String CSV_HEADER = "Round,Player1,Player2,Player3,Player4,Winner,CardsPlayed,RoundDuration";
     private int cardsPlayedInRound;
     private long roundStartTime;
     private String roundWinner;
+    private IGameMediator mediator;
     
     /**
      * Constructs a new ScoreTracker with the default CSV file path.
@@ -257,4 +262,23 @@ public class ScoreTracker {
         return Map.copyOf(scores);
     }
     
+    /**
+     * Sets the mediator for this component.
+     * 
+     * @param mediator The mediator to set
+     */
+    @Override
+    public void setMediator(IGameMediator mediator) {
+        this.mediator = mediator;
+    }
+
+    /**
+     * Gets the type of this component.
+     * 
+     * @return The component type (SCORE_TRACKER)
+     */
+    @Override
+    public GameComponentType getComponentType() {
+        return GameComponentType.SCORE_TRACKER;
+    }
 } 

@@ -11,10 +11,11 @@ import main.java.cards.actioncards.*;
 /**
  * Deck represents the complete set of cards used in the UNO game.
  * It is responsible for creating the initial set of cards and shuffling them.
+ * Implements IGameComponent interface to participate in the Mediator pattern.
  */
-public class Deck {
+public class Deck implements IGameComponent {
     private List<Card> cards;
-    private GameMediator mediator;
+    private IGameMediator mediator;
     
     /**
      * Constructs a new, empty deck.
@@ -24,12 +25,23 @@ public class Deck {
     }
     
     /**
-     * Sets the game mediator for this deck.
-     *
-     * @param mediator The game mediator
+     * Sets the mediator for this component.
+     * 
+     * @param mediator The mediator to set
      */
-    public void setMediator(GameMediator mediator) {
+    @Override
+    public void setMediator(IGameMediator mediator) {
         this.mediator = mediator;
+    }
+    
+    /**
+     * Gets the type of this component.
+     * 
+     * @return The component type (DECK)
+     */
+    @Override
+    public GameComponentType getComponentType() {
+        return GameComponentType.DECK;
     }
     
     /**
@@ -50,31 +62,27 @@ public class Deck {
             // Add one 0 card for each color
             cards.add(new NumberCard(color, 0));
             
-            // Add two 1-9 cards for each color
-            for (int num = 1; num <= 9; num++) {
-                cards.add(new NumberCard(color, num));
-                cards.add(new NumberCard(color, num));
+            // Add two of each 1-9 cards
+            for (int value = 1; value <= 9; value++) {
+                cards.add(new NumberCard(color, value));
+                cards.add(new NumberCard(color, value));
             }
             
-            // Add action cards (two of each per color)
-            for (int i = 0; i < 2; i++) {
-                cards.add(new SkipCard(color));
-                cards.add(new ReverseCard(color));
-                cards.add(new DrawTwoCard(color));
-            }
+            // Add action cards (2 of each per color)
+            cards.add(new SkipCard(color));
+            cards.add(new SkipCard(color));
+            
+            cards.add(new ReverseCard(color));
+            cards.add(new ReverseCard(color));
+            
+            cards.add(new DrawTwoCard(color));
+            cards.add(new DrawTwoCard(color));
         }
         
-        // Add Wild cards
+        // Add Wild cards (4 of each)
         for (int i = 0; i < 4; i++) {
             cards.add(new WildCard());
             cards.add(new WildDrawFourCard());
-        }
-        
-        // Set the mediator for each card
-        if (mediator != null) {
-            for (Card card : cards) {
-                card.setMediator(mediator);
-            }
         }
         
         // Shuffle the deck
@@ -90,15 +98,18 @@ public class Deck {
     
     /**
      * Deals a specified number of cards from the deck.
-     * Removes the cards from the deck.
      * 
      * @param numCards The number of cards to deal
-     * @return A list of the dealt cards
+     * @return A list of dealt cards
+     * @throws IllegalStateException if there are not enough cards
      */
     public List<Card> dealCards(int numCards) {
-        List<Card> dealtCards = new ArrayList<>();
+        if (cards.size() < numCards) {
+            throw new IllegalStateException("Not enough cards in the deck");
+        }
         
-        for (int i = 0; i < numCards && !cards.isEmpty(); i++) {
+        List<Card> dealtCards = new ArrayList<>();
+        for (int i = 0; i < numCards; i++) {
             dealtCards.add(cards.remove(0));
         }
         
@@ -107,21 +118,20 @@ public class Deck {
     
     /**
      * Returns a card to the deck.
-     * Useful when reshuffling discarded cards back into the deck.
      * 
-     * @param card The card to return to the deck
+     * @param card The card to return
      */
     public void returnCard(Card card) {
-        if (card != null) {
-            cards.add(card);
+        if (card == null) {
+            throw new IllegalArgumentException("Cannot return null card to deck");
         }
+        cards.add(card);
     }
     
     /**
-     * Gets the list of cards in the deck.
-     * Returns a defensive copy to maintain encapsulation.
+     * Gets a copy of all cards in the deck.
      * 
-     * @return A copy of the list of cards
+     * @return A copy of the cards list
      */
     public List<Card> getCards() {
         return new ArrayList<>(cards);
@@ -130,7 +140,7 @@ public class Deck {
     /**
      * Checks if the deck is empty.
      * 
-     * @return True if the deck has no cards, false otherwise
+     * @return True if the deck is empty, false otherwise
      */
     public boolean isEmpty() {
         return cards.isEmpty();
@@ -146,15 +156,14 @@ public class Deck {
     }
     
     /**
-     * For debugging: prints the first n cards in the deck.
+     * Prints the top N cards of the deck for debugging.
      * 
      * @param count The number of cards to print
      */
     public void printTopCards(int count) {
-        System.out.println("Top " + Math.min(count, cards.size()) + " cards in deck:");
-        for (int i = 0; i < Math.min(count, cards.size()); i++) {
-            System.out.println((i+1) + ". " + cards.get(i));
+        int toPrint = Math.min(count, cards.size());
+        for (int i = 0; i < toPrint; i++) {
+            System.out.println(cards.get(i));
         }
-        System.out.println();
     }
 } 

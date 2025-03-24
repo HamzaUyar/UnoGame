@@ -9,9 +9,11 @@ import main.java.cards.Card;
 /**
  * DrawPile represents the pile of cards that players draw from during the game.
  * It encapsulates the management of cards available for drawing.
+ * Implements IGameComponent interface to participate in the Mediator pattern.
  */
-public class DrawPile {
+public class DrawPile implements IGameComponent {
     private List<Card> cards;
+    private IGameMediator mediator;
     
     /**
      * Constructs a new, empty draw pile.
@@ -50,19 +52,18 @@ public class DrawPile {
      * Sets the cards in the draw pile to the provided list.
      * Makes a defensive copy to maintain encapsulation.
      * 
-     * @param cards The new list of cards
+     * @param cards The list of cards to set
      * @throws IllegalArgumentException if the cards list is null
      */
     public void setCards(List<Card> cards) {
         if (cards == null) {
-            throw new IllegalArgumentException("Cards list cannot be null");
+            throw new IllegalArgumentException("Cannot set null cards list");
         }
         this.cards = new ArrayList<>(cards);
     }
     
     /**
-     * Gets the list of cards in the draw pile.
-     * Returns a defensive copy to maintain encapsulation.
+     * Gets a copy of the cards in the draw pile.
      * 
      * @return A copy of the cards list
      */
@@ -84,5 +85,25 @@ public class DrawPile {
      */
     public void shuffle() {
         Collections.shuffle(cards);
+    }
+
+    /**
+     * Sets the mediator for this component.
+     * 
+     * @param mediator The mediator to set
+     */
+    @Override
+    public void setMediator(IGameMediator mediator) {
+        this.mediator = mediator;
+    }
+
+    /**
+     * Gets the type of this component.
+     * 
+     * @return The component type (DRAW_PILE)
+     */
+    @Override
+    public GameComponentType getComponentType() {
+        return GameComponentType.DRAW_PILE;
     }
 } 

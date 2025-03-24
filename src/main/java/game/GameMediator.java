@@ -35,6 +35,7 @@ public class GameMediator implements IGameMediator {
     
     /**
      * Creates a new GameMediator instance with initialized components.
+     * Initializes and registers all game components.
      */
     public GameMediator() {
         this.players = new ArrayList<>();
@@ -53,14 +54,11 @@ public class GameMediator implements IGameMediator {
             componentRegistry.put(type, new ArrayList<>());
         }
         
-        // Set up mediator references instead of component registration for now
-        this.deck.setMediator(this);
-        
-        // TODO: Update these components to implement IGameComponent interface
-        // registerComponent(this.deck);
-        // registerComponent(this.drawPile);
-        // registerComponent(this.discardPile);
-        // registerComponent(this.scoreTracker);
+        // Register all components with the mediator
+        registerComponent(this.deck);
+        registerComponent(this.drawPile);
+        registerComponent(this.discardPile);
+        registerComponent(this.scoreTracker);
     }
     
     /**
@@ -84,34 +82,49 @@ public class GameMediator implements IGameMediator {
         this.gameState = GameState.IN_PROGRESS;
         
         ui.displayRoundHeader(roundNumber);
-        
-        // Display number of players
+        displayPlayerInfo();
+        initializeGameComponents();
+        determineStartingPlayer();
+        setupGameBoard();
+    }
+
+    /**
+     * Displays information about the number of players in the game.
+     */
+    private void displayPlayerInfo() {
         System.out.println(ConsoleColors.WHITE_BRIGHT + "Game starting with " + players.size() + " players." + ConsoleColors.RESET);
         
         // Start tracking the new round
         scoreTracker.startNewRound();
-        
-        // 1. Initialize deck
+    }
+
+    /**
+     * Initializes all game components for a new game.
+     */
+    private void initializeGameComponents() {
+        // Initialize deck
         deck.initializeDeck();
-        
-        // 2. Determine starting player (dealer)
-        determineStartingPlayer();
-        
-        // 3. Shuffle the deck
+    }
+
+    /**
+     * Sets up the game board by shuffling the deck, dealing cards, and setting up piles.
+     */
+    private void setupGameBoard() {
+        // Shuffle the deck
         shuffleDeck();
         
-        // 4. Deal cards to players (7 each)
+        // Deal cards to players (7 each)
         dealCards();
         
-        // 5. Set up the draw and discard piles
+        // Set up the draw and discard piles
         Card startingCard = setupPiles();
         
-        // 6. Apply starting card effect if it's an action card
+        // Apply starting card effect if it's an action card
         if (!startingCard.getType().matches("\\d+")) {
             applyCardEffect(startingCard);
         }
         
-        // 7. Print game setup
+        // Print game setup
         ui.displayGameSetupComplete(currentPlayer.getName());
     }
     
@@ -130,13 +143,31 @@ public class GameMediator implements IGameMediator {
         Map<Player, Card> drawnCards = new HashMap<>();
         
         // Each player draws a card
+        drawCardsForDealerSelection(drawnCards);
+        
+        // Find the player with the highest card value
+        selectStartingPlayer(drawnCards);
+    }
+
+    /**
+     * Has each player draw a card for dealer selection.
+     * 
+     * @param drawnCards Map to store the cards drawn by each player
+     */
+    private void drawCardsForDealerSelection(Map<Player, Card> drawnCards) {
         for (Player player : players) {
             Card drawnCard = deck.dealCards(1).get(0);
             drawnCards.put(player, drawnCard);
             ui.displayPlayerDrawingCard(player.getName(), drawnCard.toString());
         }
-        
-        // Find the player with the highest card value
+    }
+
+    /**
+     * Selects the starting player based on the highest card drawn.
+     * 
+     * @param drawnCards Map of players to cards drawn
+     */
+    private void selectStartingPlayer(Map<Player, Card> drawnCards) {
         Player startingPlayer = drawnCards.entrySet().stream()
                 .max(Comparator.comparingInt(entry -> entry.getValue().getValue()))
                 .map(Map.Entry::getKey)
@@ -151,15 +182,7 @@ public class GameMediator implements IGameMediator {
             player.setAsDealer(player == startingPlayer);
         }
         
-        Card highestCard = drawnCards.get(startingPlayer);
-        ui.displayDealerSelected(startingPlayer.getName(), highestCard.toString());
-        
-        // Return the drawn cards to the deck
-        List<Card> cardsToReturn = new ArrayList<>(drawnCards.values());
-        for (Card card : cardsToReturn) {
-            deck.returnCard(card);
-        }
-        ui.displayCardsReturnedToDeck();
+        ui.displayDealerSelectedMessage(startingPlayer.getName());
     }
     
     /**

@@ -402,4 +402,14 @@ public class GameUI {
         }
         System.out.println(handStr.toString());
     }
+    
+    /**
+     * Displays a message indicating that a dealer has been selected.
+     * 
+     * @param dealerName The name of the dealer
+     */
+    public void displayDealerSelectedMessage(String dealerName) {
+        System.out.println(ConsoleColors.CYAN_BRIGHT + "✓ " + dealerName + " will be the dealer." + ConsoleColors.RESET);
+        System.out.println(ConsoleColors.SHORT_DIVIDER);
+    }
 } 
