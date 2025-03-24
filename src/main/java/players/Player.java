@@ -6,18 +6,21 @@ import java.util.stream.Collectors;
 import java.util.concurrent.ThreadLocalRandom;
 
 import main.java.cards.Card;
-import main.java.game.GameMediator;
+import main.java.game.IGameMediator;
+import main.java.game.IGameComponent;
+import main.java.game.GameComponentType;
 import main.java.utils.ConsoleColors;
 
 /**
  * Player class represents a player in the UNO game.
  * It encapsulates the player's state (name, hand) and behavior (playing cards).
- * Follows the Mediator pattern by interacting with the game through GameMediator.
+ * Follows the Mediator pattern by interacting with the game through IGameMediator.
+ * Implements IGameComponent interface to participate in the Mediator pattern.
  */
-public class Player {
+public class Player implements IGameComponent {
     private final String name;
     private List<Card> hand;
-    private GameMediator mediator;
+    private IGameMediator mediator;
     private boolean isDealer;
 
     /**
@@ -170,11 +173,12 @@ public class Player {
     }
 
     /**
-     * Sets the game mediator for this player.
+     * Sets the mediator for this component.
      * 
-     * @param mediator The game mediator
+     * @param mediator The mediator to set
      */
-    public void setMediator(GameMediator mediator) {
+    @Override
+    public void setMediator(IGameMediator mediator) {
         this.mediator = mediator;
     }
 
@@ -207,5 +211,15 @@ public class Player {
      */
     public boolean isDealer() {
         return isDealer;
+    }
+
+    /**
+     * Gets the type of this component.
+     * 
+     * @return The component type (PLAYER)
+     */
+    @Override
+    public GameComponentType getComponentType() {
+        return GameComponentType.PLAYER;
     }
 } 

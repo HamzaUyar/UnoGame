@@ -9,9 +9,11 @@ import main.java.cards.Card;
 /**
  * DiscardPile represents the pile where players place their played cards.
  * It encapsulates the management of discarded cards during the game.
+ * Implements IGameComponent interface to participate in the Mediator pattern.
  */
-public class DiscardPile {
+public class DiscardPile implements IGameComponent {
     private List<Card> cards;
+    private IGameMediator mediator;
     
     /**
      * Constructs a new, empty discard pile.
@@ -59,17 +61,12 @@ public class DiscardPile {
     }
     
     /**
-     * Gets all cards except the top card from the discard pile.
-     * Returns a defensive copy to maintain encapsulation.
+     * Gets a copy of the cards in the discard pile.
      * 
-     * @return A list of all cards except the top card
+     * @return A copy of the cards list
      */
     public List<Card> getCards() {
-        List<Card> allExceptTop = new ArrayList<>(cards);
-        if (!allExceptTop.isEmpty()) {
-            allExceptTop.remove(0);
-        }
-        return Collections.unmodifiableList(allExceptTop);
+        return new ArrayList<>(cards);
     }
     
     /**
@@ -95,5 +92,25 @@ public class DiscardPile {
      */
     public int size() {
         return cards.size();
+    }
+
+    /**
+     * Sets the mediator for this component.
+     * 
+     * @param mediator The mediator to set
+     */
+    @Override
+    public void setMediator(IGameMediator mediator) {
+        this.mediator = mediator;
+    }
+
+    /**
+     * Gets the type of this component.
+     * 
+     * @return The component type (DISCARD_PILE)
+     */
+    @Override
+    public GameComponentType getComponentType() {
+        return GameComponentType.DISCARD_PILE;
     }
 } 

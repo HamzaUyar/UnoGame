@@ -8,11 +8,30 @@ import java.util.List;
  * Interface defining the Mediator pattern contract for UNO game coordination.
  * Responsible for coordinating interactions between game components without them
  * having to refer to each other directly.
+ * 
+ * <p>The IGameMediator interface is the core of the Mediator design pattern implementation
+ * in this UNO game. It centralizes the complex communications between different game components,
+ * reducing coupling and making the system more maintainable.</p>
+ * 
+ * <p>This mediator handles all aspects of game flow including:</p>
+ * <ul>
+ *   <li>Player management - adding, removing, and tracking players</li>
+ *   <li>Game state - managing the progression of the game through different phases</li>
+ *   <li>Card interactions - validating and executing card plays</li>
+ *   <li>Turn management - tracking whose turn it is and managing turn order</li>
+ *   <li>Component registration - allowing components to register themselves with the mediator</li>
+ * </ul>
+ * 
+ * <p>By implementing this interface, a mediator can ensure that all game components
+ * communicate through a central point rather than directly with each other, promoting
+ * loose coupling and modular design.</p>
  */
 public interface IGameMediator {
     
     /**
      * Registers a game component with the mediator.
+     * This is a critical method for the Mediator pattern as it establishes
+     * the connection between the mediator and its controlled components.
      * 
      * @param component The component to register
      */
@@ -20,11 +39,14 @@ public interface IGameMediator {
     
     /**
      * Starts a new game.
+     * Initializes all necessary components and game state to begin gameplay.
      */
     void startGame();
     
     /**
      * Handles a player's turn.
+     * Coordinates all actions that happen during a player's turn,
+     * including drawing cards, playing cards, and applying card effects.
      * 
      * @param player The player whose turn it is
      */
@@ -32,6 +54,8 @@ public interface IGameMediator {
     
     /**
      * Ends the current round and processes results.
+     * Calculates scores, updates game state, and prepares for the next round
+     * or ends the game if a player has reached the winning score.
      * 
      * @param winner The player who won the round
      */
@@ -39,6 +63,7 @@ public interface IGameMediator {
     
     /**
      * Creates and adds a specified number of players to the game.
+     * Handles player initialization and setup.
      * 
      * @param numPlayers The number of players to create
      */
@@ -53,6 +78,7 @@ public interface IGameMediator {
     
     /**
      * Gets the next player in turn order.
+     * Takes into account the current direction of play (clockwise or counter-clockwise).
      * 
      * @return The next player
      */
@@ -60,11 +86,13 @@ public interface IGameMediator {
     
     /**
      * Switches the direction of play.
+     * Typically triggered by a Reverse card.
      */
     void switchDirection();
     
     /**
      * Allows a player to draw a card.
+     * Mediates the interaction between the player and the draw pile.
      * 
      * @return The drawn card
      */
@@ -93,11 +121,14 @@ public interface IGameMediator {
     
     /**
      * Redistributes all cards between players.
+     * Typically used with a Shuffle Hands card effect.
      */
     void redistributeHands();
     
     /**
      * Validates whether a Wild Draw Four play is legal.
+     * According to UNO rules, a Wild Draw Four can only be played if the player
+     * has no matching color cards in their hand.
      * 
      * @param player The player who played the card
      * @return True if the play is valid, false otherwise
@@ -106,6 +137,7 @@ public interface IGameMediator {
     
     /**
      * Checks if the game is over.
+     * In UNO, the game is typically over when a player reaches 500 points.
      * 
      * @return True if the game is over, false otherwise
      */
