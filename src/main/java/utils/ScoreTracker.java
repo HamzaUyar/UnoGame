@@ -27,11 +27,12 @@ import main.java.game.IGameMediator;
 public class ScoreTracker implements IGameComponent {
     private final Map<Player, Integer> scores;
     private final String csvPath;
-    private static final String CSV_HEADER = "Round,Player1,Player2,Player3,Player4,Winner,CardsPlayed,RoundDuration";
+    private static final String CSV_HEADER = "Round,Player 1,Player 2,Player 3,Player 4";
     private int cardsPlayedInRound;
     private long roundStartTime;
     private String roundWinner;
     private IGameMediator mediator;
+    private int currentRound = 0;
     
     /**
      * Constructs a new ScoreTracker with the default CSV file path.
@@ -96,6 +97,7 @@ public class ScoreTracker implements IGameComponent {
         cardsPlayedInRound = 0;
         roundStartTime = System.currentTimeMillis();
         roundWinner = "";
+        currentRound++;
     }
     
     /**
@@ -133,6 +135,9 @@ public class ScoreTracker implements IGameComponent {
         // Print scoreboard
         System.out.println(ConsoleColors.formatSubHeader("CURRENT SCOREBOARD"));
         printScoreboard(players);
+        
+        // Log round to CSV
+        logRoundToCSV();
     }
     
     /**
@@ -166,13 +171,8 @@ public class ScoreTracker implements IGameComponent {
     
     /**
      * Logs the current round's scores to the CSV file.
-     * 
-     * @param round The round number
      */
-    public void logRoundToCSV(int round) {
-        // Calculate round duration in seconds
-        long roundDuration = (System.currentTimeMillis() - roundStartTime) / 1000;
-        
+    private void logRoundToCSV() {
         // Make sure the CSV directory exists
         File csvDir = new File(csvPath).getParentFile();
         if (csvDir != null && !csvDir.exists()) {
@@ -187,7 +187,7 @@ public class ScoreTracker implements IGameComponent {
         
         BufferedWriter writer = null;
         try {
-            // Check if file exists to write header if needed
+            // Check if file exists
             boolean fileExists = new File(csvPath).exists();
             
             // Create the writer with append mode
@@ -203,34 +203,75 @@ public class ScoreTracker implements IGameComponent {
             
             // Build the data line
             StringBuilder line = new StringBuilder();
-            line.append(round);
+            line.append("Round ").append(currentRound);
             
             // Add player scores
             for (int i = 1; i <= 4; i++) {
-                int score = 0;
+                line.append(",");
+                // Find the player with this number or append 0
+                boolean playerFound = false;
                 for (Map.Entry<Player, Integer> entry : scores.entrySet()) {
-                    if (entry.getKey().getName().equals("Player" + i)) {
-                        score = entry.getValue();
+                    if (entry.getKey().getName().equals("Player " + i)) {
+                        line.append(entry.getValue());
+                        playerFound = true;
                         break;
                     }
                 }
-                line.append(",").append(score);
+                if (!playerFound) {
+                    line.append("0");
+                }
             }
-            
-            // Add additional stats
-            line.append(",").append(roundWinner)
-                .append(",").append(cardsPlayedInRound)
-                .append(",").append(roundDuration);
             
             writer.write(line.toString());
             writer.newLine();
             writer.flush(); // Ensure data is written
             
-            System.out.println(ConsoleColors.GREEN + "Scores and stats saved to " + csvPath + ConsoleColors.RESET);
+            System.out.println(ConsoleColors.GREEN + "Scores saved to " + csvPath + ConsoleColors.RESET);
         } catch (IOException e) {
             System.err.println(ConsoleColors.RED_BOLD + "Error writing to scores file: " + e.getMessage() + ConsoleColors.RESET);
         } catch (Exception e) {
             System.err.println(ConsoleColors.RED_BOLD + "Unexpected error saving scores: " + e.getMessage() + ConsoleColors.RESET);
+        } finally {
+            if (writer != null) {
+                try {
+                    writer.close();
+                } catch (IOException e) {
+                    System.err.println(ConsoleColors.RED + "Error closing CSV writer: " + e.getMessage() + ConsoleColors.RESET);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Logs the final game winner to the CSV file.
+     * 
+     * @param winner The player who won the game
+     * @param players All players in the game
+     */
+    public void logGameWinner(Player winner, List<Player> players) {
+        BufferedWriter writer = null;
+        try {
+            // Open the file in append mode
+            writer = Files.newBufferedWriter(Paths.get(csvPath), 
+                    StandardCharsets.UTF_8, 
+                    StandardOpenOption.APPEND);
+            
+            // Write the winner row
+            StringBuilder line = new StringBuilder();
+            line.append("Winner,").append(winner.getName());
+            
+            // Fill the remaining columns with empty values
+            for (int i = 0; i < 3; i++) {
+                line.append(",");
+            }
+            
+            writer.write(line.toString());
+            writer.newLine();
+            writer.flush();
+            
+            System.out.println(ConsoleColors.GREEN_BOLD + "Game winner saved to " + csvPath + ConsoleColors.RESET);
+        } catch (IOException e) {
+            System.err.println(ConsoleColors.RED_BOLD + "Error writing winner to scores file: " + e.getMessage() + ConsoleColors.RESET);
         } finally {
             if (writer != null) {
                 try {

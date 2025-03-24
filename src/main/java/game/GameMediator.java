@@ -392,7 +392,7 @@ public class GameMediator implements IGameMediator {
     }
     
     /**
-     * Ends the current round, calculates scores, and prepares for the next round.
+     * Ends the current round and processes results.
      * 
      * @param winner The player who won the round
      */
@@ -403,9 +403,6 @@ public class GameMediator implements IGameMediator {
         // Update scores
         scoreTracker.updateScores(winner, players);
         
-        // Log the round to CSV
-        scoreTracker.logRoundToCSV(roundNumber);
-        
         // Check if game over (someone reached 500 points)
         if (isGameWon()) {
             this.gameState = GameState.GAME_OVER;
@@ -414,6 +411,9 @@ public class GameMediator implements IGameMediator {
             Player gameWinner = players.stream()
                     .max(Comparator.comparing(player -> scoreTracker.getScore(player)))
                     .orElse(winner);
+            
+            // Log the game winner to CSV
+            scoreTracker.logGameWinner(gameWinner, players);
             
             ui.displayPlayerWinsGame(gameWinner.getName(), scoreTracker.getScore(gameWinner));
         } else {
@@ -653,7 +653,7 @@ public class GameMediator implements IGameMediator {
         }
         
         for (int i = 1; i <= numPlayers; i++) {
-            Player player = new Player("Player" + i);
+            Player player = new Player("Player " + i);
             addPlayer(player);
         }
     }
